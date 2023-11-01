@@ -1,0 +1,42 @@
+version: '3.4'
+
+services:
+
+  db:
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: 5hortB@x
+    image: mcr.microsoft.com/mssql/server
+    volumes:
+      - shortboxsql:/var/opt/mssql
+    restart: always
+    ports:
+      - "1433:1433"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 5hortB@x -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      retries: 10
+      start_period: 10s
+      timeout: 3s
+
+  api:
+    #image: ${DOCKER_REGISTRY-}shortboxapi
+    build:
+      context: .
+      dockerfile: ShortBox.Api/Dockerfile    
+    volumes:
+      - d:/comics:/usr/store
+    ports:
+      - 81:80
+    depends_on:
+      - db
+
+  web:
+    build:
+      context: .
+      dockerfile: ShortBox.Web/Server/Dockerfile
+    ports:
+      - 80:80
+
+volumes:
+  shortboxsql:

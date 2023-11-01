@@ -1,0 +1,9 @@
+﻿@page "/series/{SeriesName}"
+@using ShortBox.Api.Data
+<h2>@SeriesName</h2>
+@code {
+    [Parameter]
+    public string? SeriesName { get; set; } 
+
+    public Series? Series { get; set; }
+}

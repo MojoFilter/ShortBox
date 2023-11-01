@@ -1,0 +1,14 @@
+﻿@using ShortBox.Api.Data;
+<figure class="figure">
+    <img src="https://sm.ign.com/t/ign_za/gallery/t/the-incred/the-incredible-covers-of-immortal-hulk_xvkt.1080.jpg"
+         class="figure-img img-fluid rounded booklink"
+         alt="@Title" />
+    <figcaption class="figure-caption">@Title</figcaption>
+</figure>
+
+@code {
+    [Parameter]
+    public Book? Book { get; set; }
+
+    private string Title => $"{Book?.Series} #{Book?.Number}";
+}

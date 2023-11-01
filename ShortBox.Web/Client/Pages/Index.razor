@@ -1,0 +1,25 @@
+﻿@page "/"
+@using ShortBox.Api.Data;
+@inject HttpClient client;
+
+<PageTitle>Fart Titties Library</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+<Virtualize Items="@_series" Context="series">
+    <div class="col-md-2 mb-4">
+        <SeriesLink Series="series" />
+    </div>
+</Virtualize>
+</div>
+</div>
+
+@code {
+    private List<Series> _series = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _series = ((await client.GetFromJsonAsync<IEnumerable<Series>>("Library")) ?? Enumerable.Empty<Series>()).ToList();
+
+    }
+}

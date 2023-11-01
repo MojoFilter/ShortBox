@@ -1,0 +1,26 @@
+﻿@using ShortBox.Api.Data;
+@inject NavigationManager NavigationManager
+
+<figure class="figure" @onclick="SeriesClicked">
+    <img src="@imageUri"
+         class="figure-img img-fluid rounded serieslink"
+         alt="@Series?.Name" />
+    <figcaption class="figure-caption"><a href="/series/@Series?.Name">@Series?.Name</a></figcaption>
+</figure>
+
+@code {
+    [Parameter]
+    public Series? Series { get; set; }
+
+    private string? imageUri;
+
+    protected override void OnParametersSet()
+    {
+        imageUri = $"/Library/series/{Series?.Name}/cover";
+    }
+
+    private void SeriesClicked(MouseEventArgs e)
+    {
+        NavigationManager.NavigateTo($"/series/{Series?.Name}");
+    }
+}
