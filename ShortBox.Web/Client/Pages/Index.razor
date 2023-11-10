@@ -1,8 +1,9 @@
 ﻿@page "/"
 @using ShortBox.Api.Data;
-@inject HttpClient client;
+@using ShortBox.Web.Shared
+@inject IShortBoxWebClient client;
 
-<PageTitle>Fart Titties Library</PageTitle>
+<PageTitle>ShortBox Comics Library</PageTitle>
 
 <div class="container-fluid">
     <div class="row">
@@ -19,7 +20,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _series = ((await client.GetFromJsonAsync<IEnumerable<Series>>("Library")) ?? Enumerable.Empty<Series>()).ToList();
+        _series = (await client.GetAllSeriesAsync()).ToList(); //((await client.GetFromJsonAsync<IEnumerable<Series>>("Library")) ?? Enumerable.Empty<Series>()).ToList();
 
     }
 }

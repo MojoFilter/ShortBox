@@ -1,0 +1,15 @@
+﻿.overlay-link {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0);
+}
+.prev-link {
+    width: 20%;
+    left: 0;
+}
+
+.next-link {
+    width: 20%;
+    right: 0;
+}

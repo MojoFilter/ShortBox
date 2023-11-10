@@ -8,6 +8,7 @@ public interface IArchiveReader
     Stream? GetInfoStream(string fileName);
     int GetPageCount(string fileName);
     Stream? OpenCover(string fileName);
+    Stream? OpenPage(string fileName, int pageIndex);
 }
 
 internal abstract class ArchiveReader : IArchiveReader

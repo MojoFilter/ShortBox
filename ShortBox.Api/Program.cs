@@ -40,6 +40,24 @@ app.MapGet("/books", (ShortBoxContext context) => context.Books.ToListAsync())
    .WithName("GetBooks")
    .WithOpenApi();
 
+app.MapGet("/book/{bookId}/cover", async (int bookId, IBookStore store, CancellationToken ct) =>
+        Results.File(await store.GetBookCoverAsync(bookId, ct), "image/jpeg"))
+   .WithName("GetBookCover")
+   .WithOpenApi();
+
+app.MapPut("/book/{bookId}/mark/{pageNumber}", async (int bookId, int pageNumber, IBookStore store, CancellationToken ct) =>
+        await store.MarkPageAsync(bookId, pageNumber, ct))
+   .WithName("MarkPage")
+   .WithOpenApi();
+
+app.MapGet("/book/{bookId}/{pageNumber}", async (int bookId, int pageNumber, IBookStore store, CancellationToken ct) =>
+        Results.File(await store.GetBookPageAsync(bookId, pageNumber, ct), "image/jpeg"));
+
+app.MapGet("series/{seriesName}", (string seriesName, IBookStore store, CancellationToken ct) =>
+        store.GetIssuesAsync(seriesName, ct))
+    .WithName("GetIssues")
+    .WithOpenApi();
+
 app.MapGet("/scan", (IComicFolderScanner scanner, CancellationToken ct) => scanner.ScanFolderAsync(ct))
    .WithName("Scan")
    .WithOpenApi();

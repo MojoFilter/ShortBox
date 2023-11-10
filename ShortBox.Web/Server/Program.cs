@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
-builder.Services.AddShortBoxCommunication(c => c.BaseAddress = new Uri("http://localhost:81"));
+builder.Services.AddShortBoxCommunication(c => c.BaseAddress = new Uri("http://localhost:5008"));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

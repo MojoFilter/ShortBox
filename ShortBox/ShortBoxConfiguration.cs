@@ -10,5 +10,7 @@ public static class ShortBoxConfiguration
                 .AddTransient<IRarReader, RarReader>()
                 .AddTransient<IZipReader, ZipReader>()
                 .AddTransient<IBookFactory, BookFactory>()
-                .AddTransient<IComicFolderScanner, ComicFolderScanner>();
+                .AddTransient<IComicFolderScanner, ComicFolderScanner>()
+                .AddTransient<IComicFileReader, ComicFileReader>()
+                .AddTransient<IArchiveReaderFactory, ArchiveReaderFactory>();
 }

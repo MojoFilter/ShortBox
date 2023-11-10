@@ -8,7 +8,11 @@ namespace ShortBox.Api;
 
 public interface IBookStore {
     Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken);
+    Task<byte[]> GetBookCoverAsync(int bookId, CancellationToken ct);
+    Task<byte[]> GetBookPageAsync(int bookId, int pageNumber, CancellationToken ct);
+    Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken ct);
     Task<byte[]> GetSeriesCoverAsync(string seriesName, CancellationToken cancellationToken);
+    Task MarkPageAsync(int bookId, int pageNumber, CancellationToken ct);
 }
 
 internal class FolderBookStoreOptions { 
@@ -19,9 +23,11 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
 
     public FolderBookStore(
         IOptions<FolderBookStoreOptions> options,
-        ShortBoxContext context) {
+        ShortBoxContext context,
+        IComicFileReader reader) {
         _bookFolder = options.Value.Path;
         _context = context;
+        _reader = reader;
     }
 
     public async Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken) =>
@@ -36,7 +42,7 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
             .Books
             .Where(b => string.Equals(b.Series, seriesName))
             .FirstAsync();
-        return await File.ReadAllBytesAsync(this.CoverFilePath(firstBook));
+        return await this.GetCoverFileAsync(firstBook, cancellationToken);
     }
             
     public async Task CacheCoverAsync(Book book, Func<Stream?> getCoverStream, CancellationToken ct) {
@@ -65,9 +71,40 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
     }
 
     private string CoverFilePath(Book book) => Path.Combine(_bookFolder, "covers", $"{book.FileName}.jpg");
-   
+
+    public async Task<byte[]> GetBookCoverAsync(int bookId, CancellationToken ct)
+    {
+        var book = await this.GetBookByIdAsync(bookId, ct);
+        return await this.GetCoverFileAsync(book, ct);
+    }
+
+    public async Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken ct) =>
+        (await _context.Books.Where(b => string.Equals(b.Series, seriesName)).ToListAsync()).AsEnumerable();
+
+    private async Task<Book> GetBookByIdAsync(int bookId, CancellationToken ct) =>
+        await _context.Books.FirstOrDefaultAsync(b => b.Id == bookId, ct) 
+            ?? throw new KeyNotFoundException($"Book not found with ID {bookId}");
+
+    private Task<byte[]> GetCoverFileAsync(Book book, CancellationToken ct) => File.ReadAllBytesAsync(this.CoverFilePath(book), ct);
+
+    public async Task<byte[]> GetBookPageAsync(int bookId, int pageNumber, CancellationToken ct) =>
+        await _context.Books.FindAsync(bookId) switch
+        {
+            Book book => await _reader.GetBookPageAsync(ArchivePath(book), pageNumber, ct).ToByteArrayAsync(ct),
+            _ => throw new KeyNotFoundException("Book ID not found")
+        };
+
+    private string ArchivePath(Book book) => Path.Combine(_bookFolder, book.FileName);
+
+    public Task MarkPageAsync(int bookId, int pageNumber, CancellationToken ct) =>
+        _context.Books
+                .Where(b => b.Id == bookId)
+                .ExecuteUpdateAsync(s => s.SetProperty(b => b.CurrentPage, pageNumber));
+    
 
     private string _bookFolder;
     private ShortBoxContext _context;
+    private readonly IComicFileReader _reader;
+
     //private IComicFolderScanner _scanner;
 }

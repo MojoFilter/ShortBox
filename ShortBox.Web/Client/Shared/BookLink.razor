@@ -1,6 +1,8 @@
 ﻿@using ShortBox.Api.Data;
-<figure class="figure">
-    <img src="https://sm.ign.com/t/ign_za/gallery/t/the-incred/the-incredible-covers-of-immortal-hulk_xvkt.1080.jpg"
+@inject NavigationManager NavigationManager
+
+<figure class="figure" @onclick="BookClicked">
+    <img src="@CoverUri"
          class="figure-img img-fluid rounded booklink"
          alt="@Title" />
     <figcaption class="figure-caption">@Title</figcaption>
@@ -10,5 +12,12 @@
     [Parameter]
     public Book? Book { get; set; }
 
+    private string CoverUri => Book is null ? string.Empty : $"/Library/Book/{Book.Id}/cover";
+
     private string Title => $"{Book?.Series} #{Book?.Number}";
+
+    private void BookClicked(MouseEventArgs e)
+    {
+        NavigationManager.NavigateTo($"/read/{Book?.Id}/{Book?.CurrentPage}");
+    }
 }

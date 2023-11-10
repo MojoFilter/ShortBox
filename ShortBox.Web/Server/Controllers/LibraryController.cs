@@ -22,5 +22,23 @@ public class LibraryController : ControllerBase
     public async Task<IActionResult> GetSeriesCover(string seriesId, CancellationToken cancellationToken) =>
         File(await _client.GetSeriesCoverAsync(seriesId, cancellationToken), "image/jpeg");
 
+    [HttpGet("book/{bookId}/cover")]
+    public async Task<IActionResult> GetBookCover(int bookId, CancellationToken cancellationToken) =>
+        File(await _client.GetBookCoverAsync(bookId, cancellationToken), "image/jpeg");
+
+    [HttpGet("book/{bookId}/{pageNumber}")]
+    public async Task<IActionResult> GetBookPage(int bookId, int pageNumber, CancellationToken cancellationToken) =>
+        File(await _client.GetBookPageAsync(bookId, pageNumber, cancellationToken), "image/jpeg");
+
+    [HttpPut("book/{bookId}/mark/{pageNumber}")]
+    public async Task<IActionResult> MarkBookPage(int bookId, int pageNumber, CancellationToken cancellationToken)
+    {
+        await _client.MarkPageAsync(bookId, pageNumber, cancellationToken);
+        return Ok();
+    }
+
+    [HttpGet("{seriesName}")]
+    public Task<IEnumerable<Book>> GetIssues(string seriesName, CancellationToken cancellationToken) => _client.GetIssuesAsync(seriesName, cancellationToken);
+
     private readonly IShortBoxApiClient _client;
 }

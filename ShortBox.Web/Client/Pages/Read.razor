@@ -1,0 +1,23 @@
+﻿@page "/read/{BookId:int}/{PageNumber:int?}"
+@inject IShortBoxWebClient client
+<div class="container-fluid p-0 position-relative">
+    <img src="@ImageUrl" class="img-fluid" />
+    <a href="/read/@BookId/@(PageNumber-1)" class="overlay-link prev-link">&lt;</a>
+    <a href="/read/@BookId/@(PageNumber+1)" class="overlay-link next-link">&gt;</a>
+</div>
+
+@code {
+
+    [Parameter]
+    public int BookId { get; set; }
+
+    [Parameter]
+    public int PageNumber { get; set; } = 0;
+
+    private string ImageUrl => $"/Library/Book/{BookId}/{PageNumber}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await client.MarkPageAsync(BookId, PageNumber);
+    }
+}

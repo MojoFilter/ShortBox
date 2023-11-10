@@ -15,5 +15,5 @@ public static class ShortBoxApiConfiguration
                 .AddTransient<IBookStore, FolderBookStore>()
                 .AddTransient<IFolderBookStore, FolderBookStore>()
                 .AddShortBoxServices()
-                .Configure<FolderBookStoreOptions>(o => o.Path = "/usr/store");
+                .Configure<FolderBookStoreOptions>(configuration.GetSection("store"));
 }

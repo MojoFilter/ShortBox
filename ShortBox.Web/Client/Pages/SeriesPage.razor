@@ -1,9 +1,29 @@
 ﻿@page "/series/{SeriesName}"
-@using ShortBox.Api.Data
+@inject IShortBoxWebClient client
+
 <h2>@SeriesName</h2>
+<Virtualize Items="@issues" Context="issue">
+    <div class="col-md-2 mb-4">
+        <BookLink Book="issue" />
+    </div>
+</Virtualize>
 @code {
     [Parameter]
     public string? SeriesName { get; set; } 
 
     public Series? Series { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (SeriesName is string)
+        {
+            issues = await client.GetIssuesAsync(SeriesName).ToListAsync();
+        }
+    }
+
+    private List<Book> issues = new();
+
+    
+
+
 }
