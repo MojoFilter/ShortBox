@@ -1,4 +1,5 @@
-﻿using ShortBox.Services;
+﻿using ShortBox;
+using ShortBox.Services;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -12,5 +13,6 @@ public static class ShortBoxConfiguration
                 .AddTransient<IBookFactory, BookFactory>()
                 .AddTransient<IComicFolderScanner, ComicFolderScanner>()
                 .AddTransient<IComicFileReader, ComicFileReader>()
-                .AddTransient<IArchiveReaderFactory, ArchiveReaderFactory>();
+                .AddTransient<IArchiveReaderFactory, ArchiveReaderFactory>()
+                .AddTransient<IImageBusiness, ImageBusiness>();
 }

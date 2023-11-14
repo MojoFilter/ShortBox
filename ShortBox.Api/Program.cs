@@ -31,8 +31,8 @@ app.MapGet("/series", (IBookStore store, CancellationToken ct) => store.GetAllSe
     .WithOpenApi();
 
 app.MapGet("/series/{seriesName}/cover",
-    async (string seriesName, IBookStore store, CancellationToken ct) =>
-        Results.File(await store.GetSeriesCoverAsync(seriesName, ct), "image/jpeg"))
+    async (string seriesName, IBookStore store, int? height, CancellationToken ct) =>
+        Results.File(await store.GetSeriesCoverAsync(seriesName, height, ct), "image/jpeg"))
     .WithName("GetSeriesCover")
     .WithOpenApi();
 
@@ -40,8 +40,8 @@ app.MapGet("/books", (ShortBoxContext context) => context.Books.ToListAsync())
    .WithName("GetBooks")
    .WithOpenApi();
 
-app.MapGet("/book/{bookId}/cover", async (int bookId, IBookStore store, CancellationToken ct) =>
-        Results.File(await store.GetBookCoverAsync(bookId, ct), "image/jpeg"))
+app.MapGet("/book/{bookId}/cover", async (int bookId, int? height, IBookStore store, CancellationToken ct) =>
+        Results.File(await store.GetBookCoverAsync(bookId, height, ct), "image/jpeg"))
    .WithName("GetBookCover")
    .WithOpenApi();
 

@@ -19,12 +19,12 @@ public class LibraryController : ControllerBase
         _client.GetAllSeriesAsync(cancellationToken);
 
     [HttpGet("series/{seriesId}/cover")]
-    public async Task<IActionResult> GetSeriesCover(string seriesId, CancellationToken cancellationToken) =>
-        File(await _client.GetSeriesCoverAsync(seriesId, cancellationToken), "image/jpeg");
+    public async Task<IActionResult> GetSeriesCover(string seriesId, int? height, CancellationToken cancellationToken) =>
+        File(await _client.GetSeriesCoverAsync(seriesId, height, cancellationToken), "image/jpeg");
 
     [HttpGet("book/{bookId}/cover")]
-    public async Task<IActionResult> GetBookCover(int bookId, CancellationToken cancellationToken) =>
-        File(await _client.GetBookCoverAsync(bookId, cancellationToken), "image/jpeg");
+    public async Task<IActionResult> GetBookCover(int bookId, int? height, CancellationToken cancellationToken) =>
+        File(await _client.GetBookCoverAsync(bookId, height, cancellationToken), "image/jpeg");
 
     [HttpGet("book/{bookId}/{pageNumber}")]
     public async Task<IActionResult> GetBookPage(int bookId, int pageNumber, CancellationToken cancellationToken) =>

@@ -17,7 +17,7 @@ public class TestClient : IShortBoxApiClient
     public Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken) => Task.FromResult(
         Enumerable.Range(1, 100).Select(i => new Series($"Number {i} Adventures")));
 
-    public Task<Stream> GetBookCoverAsync(int bookId, CancellationToken cancellationToken)
+    public Task<Stream> GetBookCoverAsync(int bookId, int? height, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }
@@ -32,7 +32,7 @@ public class TestClient : IShortBoxApiClient
         throw new NotImplementedException();
     }
 
-    public Task<Stream> GetSeriesCoverAsync(string seriesName, CancellationToken cancellationToken) =>
+    public Task<Stream> GetSeriesCoverAsync(string seriesName, int? height, CancellationToken cancellationToken) =>
         Task.FromResult<Stream>(File.OpenRead(@"D:\Comics\covers\Deadpool 010 (2023) (Digital) (Li'l-Empire) (HD-Upscaled).cbz.jpg"));
 
     public Task MarkPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken)

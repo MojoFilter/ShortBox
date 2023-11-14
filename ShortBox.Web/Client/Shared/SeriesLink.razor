@@ -16,7 +16,7 @@
 
     protected override void OnParametersSet()
     {
-        imageUri = $"/Library/series/{Series?.Name}/cover";
+        imageUri = $"/Library/series/{Series?.Name}/cover?height=480";
     }
 
     private void SeriesClicked(MouseEventArgs e)
