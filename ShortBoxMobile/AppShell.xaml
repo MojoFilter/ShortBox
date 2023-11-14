@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="ShortBoxMobile.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:ShortBoxMobile"
+    Shell.FlyoutBehavior="Flyout"
+    Shell.TabBarIsVisible="False"
+    Title="ShortBoxMobile">
+    <Shell.Resources>
+        <Style x:Key="seriesStyle"
+               TargetType="ShellContent">
+            <Setter Property="ContentTemplate"
+                    Value="{DataTemplate local:SeriesPage}" />
+            <Setter Property="Title"
+                    Value="{Binding Name}" />
+        </Style>
+    </Shell.Resources>
+
+    <ShellContent
+        Title="Home"
+        ContentTemplate="{DataTemplate local:MainPage}"
+        Route="MainPage" />
+
+    <FlyoutItem Title="Series"
+                FlyoutDisplayOptions="AsMultipleItems"
+                x:Name="seriesContainer">
+
+    </FlyoutItem>
+
+    <MenuItem Text="Settings" />
+
+</Shell>

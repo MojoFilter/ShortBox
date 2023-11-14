@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:ShortBoxMobile"
+             x:Class="ShortBoxMobile.SeriesPage">
+    <ContentPage.Resources>
+        <local:BookCoverUriConverter x:Key="coverConverter" />
+    </ContentPage.Resources>
+	<CollectionView x:Name="booksView" 
+					ItemsLayout="VerticalGrid, 3"
+					ItemsSource="{Binding Books}">
+		<CollectionView.ItemTemplate>
+			<DataTemplate>
+				<Grid Padding="10">
+					<Grid.RowDefinitions>
+                        <RowDefinition Height="250" />
+                        <RowDefinition Height="35" />
+					</Grid.RowDefinitions>
+                    <Image>
+                        <Image.Source>
+                            <UriImageSource Uri="{Binding Converter={StaticResource coverConverter}}" />
+                        </Image.Source>
+                    </Image>
+                    <Label Grid.Row="1"
+                           Text="{Binding Number}" />
+				</Grid>
+			</DataTemplate>
+		</CollectionView.ItemTemplate>
+	</CollectionView>
+</ContentPage>
