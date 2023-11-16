@@ -6,12 +6,17 @@
     <ContentPage.Resources>
         <local:BookCoverUriConverter x:Key="coverConverter" />
     </ContentPage.Resources>
-	<CollectionView x:Name="booksView" 
-					ItemsLayout="VerticalGrid, 3"
-					ItemsSource="{Binding Books}">
-		<CollectionView.ItemTemplate>
-			<DataTemplate>
-				<Grid Padding="10">
+    <CollectionView x:Name="booksView" 
+					ItemsLayout="VerticalGrid, 4"
+					ItemsSource="{Binding Books}"
+                    SelectionMode="Single">
+        <CollectionView.ItemTemplate>
+            <DataTemplate>
+                <Grid Padding="10">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Command="{Binding Source={x:Reference booksView}, Path=BindingContext.OpenBookCommand}"
+                                              CommandParameter="{Binding}" />
+                    </Grid.GestureRecognizers>
 					<Grid.RowDefinitions>
                         <RowDefinition Height="250" />
                         <RowDefinition Height="35" />
@@ -22,6 +27,7 @@
                         </Image.Source>
                     </Image>
                     <Label Grid.Row="1"
+                           HorizontalTextAlignment="Center"
                            Text="{Binding Number}" />
 				</Grid>
 			</DataTemplate>

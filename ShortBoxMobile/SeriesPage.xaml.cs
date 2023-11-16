@@ -1,9 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using ShortBox.Api.Data;
-using ShortBox.Communication;
-using System.ComponentModel;
-
-namespace ShortBoxMobile;
+﻿namespace ShortBoxMobile;
 
 public partial class SeriesPage : ContentPage
 {
@@ -43,6 +38,13 @@ public sealed partial class SeriesPageViewModel : ObservableObject
 
     [ObservableProperty]
     private IEnumerable<Book> _books;
+
+    [RelayCommand]
+    private Task OpenBookAsync(Book book) => book switch
+    {
+        Book => Shell.Current.GoToAsync($"{nameof(BookPage)}?bookId={book.Id}"),
+        _ => Task.CompletedTask
+    };
 
     private async void LoadBooks()
     {

@@ -19,6 +19,8 @@ namespace ShortBoxMobile
                     .AddTransient<SeriesPageViewModel>()
                     .AddTransient<SeriesPage>()
                     .AddTransient<ViewModelFactory>()
+                    .AddTransient<BookPage>()
+                    .AddTransient<BookPageViewModel>()
                     .AddShortBoxCommunication(client => client.BaseAddress = new Uri("http://gordon:5000/"));
 
 #if DEBUG

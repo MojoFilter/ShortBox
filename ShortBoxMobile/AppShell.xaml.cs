@@ -1,6 +1,4 @@
-﻿using ShortBox.Communication;
-
-namespace ShortBoxMobile
+﻿namespace ShortBoxMobile
 {
     public partial class AppShell : Shell
     {
@@ -11,6 +9,7 @@ namespace ShortBoxMobile
             _client = shortBoxApiClient;
             InitializeComponent();
             this.Loaded += AppShell_Loaded;
+            Routing.RegisterRoute(nameof(BookPage), typeof(BookPage));
         }
 
         private async void AppShell_Loaded(object sender, EventArgs e)

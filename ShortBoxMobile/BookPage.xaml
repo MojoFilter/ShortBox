@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:ShortBoxMobile"
+             x:Class="ShortBoxMobile.BookPage"
+             Title="{Binding Title}"
+             x:DataType="local:BookPageViewModel">
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Prev" Command="{Binding PreviousPageCommand}" />
+        <ToolbarItem Text="Next" Command="{Binding NextPageCommand}" />
+    </ContentPage.ToolbarItems>
+    <ContentPage.Resources>
+        <local:BookPageUriConverter x:Key="uriConverter" />
+    </ContentPage.Resources>
+    <Image Aspect="AspectFit">
+        <Image.Source>
+            <UriImageSource>
+                <UriImageSource.Uri>
+                    <MultiBinding Converter="{StaticResource uriConverter}">
+                        <Binding Path="BookId" />
+                        <Binding Path="PageNumber" />
+                    </MultiBinding>
+                </UriImageSource.Uri>
+            </UriImageSource>
+        </Image.Source>
+    </Image>
+</ContentPage>

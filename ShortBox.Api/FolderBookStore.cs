@@ -8,6 +8,7 @@ namespace ShortBox.Api;
 
 public interface IBookStore {
     Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken);
+    Task<Book> GetBookAsync(int bookId, CancellationToken ct);
     Task<byte[]> GetBookCoverAsync(int bookId, int? height, CancellationToken ct);
     Task<byte[]> GetBookPageAsync(int bookId, int pageNumber, CancellationToken ct);
     Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken ct);
@@ -72,6 +73,7 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
         await _context.SaveChangesAsync();
     }
 
+    public Task<Book> GetBookAsync(int bookId, CancellationToken ct) => this.GetBookByIdAsync(bookId, ct);
 
     public async Task<byte[]> GetBookCoverAsync(int bookId, int? height, CancellationToken ct)
     {

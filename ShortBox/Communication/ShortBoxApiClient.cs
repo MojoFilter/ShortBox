@@ -4,6 +4,7 @@ public interface IShortBoxApiClient
 {
     Task<IEnumerable<Book>> GetAllBooksAsync(CancellationToken cancellationToken = default);
     Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken = default);
+    Task<Book?> GetBookAsync(int bookId, CancellationToken cancellationToken = default);
     Task<Stream> GetBookCoverAsync(int bookId, int? height, CancellationToken cancellationToken);
     Task<Stream> GetBookPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken);
     Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken cancellationToken = default);
@@ -29,13 +30,16 @@ internal sealed class ShortBoxApiClient : IShortBoxApiClient
     public Task<Stream> GetSeriesCoverAsync(string seriesName, int? height, CancellationToken cancellationToken) =>
         _httpClient.GetStreamAsync($"series/{seriesName}/cover?{(height.HasValue ? $"height={height}" : "")}", cancellationToken);
 
+    public Task<Book?> GetBookAsync(int bookId, CancellationToken cancellationToken) =>
+        _httpClient.GetFromJsonAsync<Book>($"/book/{bookId}", cancellationToken);
+
     public Task<Stream> GetBookCoverAsync(int bookId, int? height, CancellationToken cancellationToken) =>
         _httpClient.GetStreamAsync($"book/{bookId}/cover?{(height.HasValue ? $"height={height}" : "")}");
 
     public Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken cancellationToken = default) =>
         GetSomeAsync<Book>($"series/{seriesName}", cancellationToken);
 
-    public Task<Stream> GetBookPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken) =>
+    public Task<Stream> GetBookPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken = default) =>
         _httpClient.GetStreamAsync($"book/{bookId}/{pageNumber}", cancellationToken);
 
     public Task MarkPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken) =>

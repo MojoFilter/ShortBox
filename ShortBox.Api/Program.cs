@@ -40,6 +40,10 @@ app.MapGet("/books", (ShortBoxContext context) => context.Books.ToListAsync())
    .WithName("GetBooks")
    .WithOpenApi();
 
+app.MapGet("/book/{bookId}", (int bookId, IBookStore store, CancellationToken ct) => store.GetBookAsync(bookId, ct))
+    .WithName("GetBook")
+    .WithOpenApi();
+
 app.MapGet("/book/{bookId}/cover", async (int bookId, int? height, IBookStore store, CancellationToken ct) =>
         Results.File(await store.GetBookCoverAsync(bookId, height, ct), "image/jpeg"))
    .WithName("GetBookCover")
