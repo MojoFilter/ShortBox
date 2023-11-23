@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.002.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ShortBox.Api", "ShortBox.Api.csproj", "{A243F5EC-595B-4563-B653-E932FB3EBF23}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A243F5EC-595B-4563-B653-E932FB3EBF23}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A243F5EC-595B-4563-B653-E932FB3EBF23}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A243F5EC-595B-4563-B653-E932FB3EBF23}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A243F5EC-595B-4563-B653-E932FB3EBF23}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A2D9FA7C-ADE8-492A-B125-2DC3227F8104}
+	EndGlobalSection
+EndGlobal

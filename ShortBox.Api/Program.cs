@@ -36,7 +36,7 @@ app.MapGet("/series/{seriesName}/cover",
     .WithName("GetSeriesCover")
     .WithOpenApi();
 
-app.MapGet("/books", (ShortBoxContext context) => context.Books.ToListAsync())
+app.MapGet("/books", (IBookStore store, CancellationToken ct) => store.GetRecentBooksAsync(ct))
    .WithName("GetBooks")
    .WithOpenApi();
 

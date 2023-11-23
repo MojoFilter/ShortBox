@@ -7,7 +7,7 @@ public interface IFolderBookStore
     Task<IEnumerable<string>> GetZipFilesAsync(CancellationToken cancellationToken);
     Task CacheCoverAsync(Book book, Func<Stream?> getCoverStream, CancellationToken ct);
     Task AddBooksAsync(IEnumerable<Book> books, CancellationToken ct);
-
+    Task RepairMissingDatesAsync(CancellationToken ct);
 }
 
 public record ScanResult(IEnumerable<string> NewFiles);
@@ -46,8 +46,10 @@ internal class ComicFolderScanner : IComicFolderScanner
             }
         }
         await _store.AddBooksAsync(newBooks, cancellationToken);
+        await _store.RepairMissingDatesAsync(cancellationToken);
         return new ScanResult(newBooks.Select(b => b.FileName).ToArray());
     }
+
 
     private Task<Book> InitBookRarAsync(string file, CancellationToken ct) =>
         InitBookAsync(file, _rarReader, ct);

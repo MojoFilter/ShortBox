@@ -6,6 +6,7 @@
     xmlns:local="clr-namespace:ShortBoxMobile"
     Shell.FlyoutBehavior="Flyout"
     Shell.TabBarIsVisible="False"
+    FlyoutBackgroundColor="#302210"
     Title="ShortBoxMobile">
     <Shell.Resources>
         <Style x:Key="seriesStyle"

@@ -10,12 +10,18 @@ public class TestClient : IShortBoxApiClient
         {
             Id = i,
             FileName = string.Empty,
+            Added = DateTime.Now,
             Number = i.ToString(),
             Series = "Testing Adventures"
         }));
 
     public Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken) => Task.FromResult(
         Enumerable.Range(1, 100).Select(i => new Series($"Number {i} Adventures")));
+
+    public Task<Book?> GetBookAsync(int bookId, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
 
     public Task<Stream> GetBookCoverAsync(int bookId, int? height, CancellationToken cancellationToken)
     {

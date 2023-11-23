@@ -12,16 +12,21 @@
     <ContentPage.Resources>
         <local:BookPageUriConverter x:Key="uriConverter" />
     </ContentPage.Resources>
-    <Image Aspect="AspectFit">
-        <Image.Source>
-            <UriImageSource>
-                <UriImageSource.Uri>
-                    <MultiBinding Converter="{StaticResource uriConverter}">
-                        <Binding Path="BookId" />
-                        <Binding Path="PageNumber" />
-                    </MultiBinding>
-                </UriImageSource.Uri>
-            </UriImageSource>
-        </Image.Source>
-    </Image>
+    <ContentView x:Name="comicPageContainer">
+        <ContentView.GestureRecognizers>
+            <PinchGestureRecognizer PinchUpdated="PinchGestureRecognizer_PinchUpdated" />
+        </ContentView.GestureRecognizers>
+        <Image Aspect="AspectFit">
+            <Image.Source>
+                <UriImageSource>
+                    <UriImageSource.Uri>
+                        <MultiBinding Converter="{StaticResource uriConverter}">
+                            <Binding Path="BookId" />
+                            <Binding Path="PageNumber" />
+                        </MultiBinding>
+                    </UriImageSource.Uri>
+                </UriImageSource>
+            </Image.Source>
+        </Image>
+    </ContentView>
 </ContentPage>

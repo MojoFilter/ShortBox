@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.ComponentModel;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using ShortBox.Api.Data;
 using ShortBox.Services;
@@ -12,8 +13,9 @@ public interface IBookStore {
     Task<byte[]> GetBookCoverAsync(int bookId, int? height, CancellationToken ct);
     Task<byte[]> GetBookPageAsync(int bookId, int pageNumber, CancellationToken ct);
     Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken ct);
+    Task<List<Book>> GetRecentBooksAsync(CancellationToken ct);
     Task<byte[]> GetSeriesCoverAsync(string seriesName, int? height, CancellationToken cancellationToken);
-    Task MarkPageAsync(int bookId, int pageNumber, CancellationToken ct);
+    Task MarkPageAsync(int bookId, int pageNumber, CancellationToken ct);    
 }
 
 internal class FolderBookStoreOptions { 
@@ -102,6 +104,22 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
             Book book => await _reader.GetBookPageAsync(ArchivePath(book), pageNumber, ct).ToByteArrayAsync(ct),
             _ => throw new KeyNotFoundException("Book ID not found")
         };
+
+    public Task<List<Book>> GetRecentBooksAsync(CancellationToken ct) =>
+        _context.Books.OrderByDescending(b => b.Added).ToListAsync(ct);
+        
+    private static readonly DateTime tooOld = new(2000, 1, 1);
+
+    public async Task RepairMissingDatesAsync(CancellationToken ct)
+    {
+        var missing = await _context.Books.Where(b => b.Added < tooOld).ToListAsync(ct);
+        foreach (var book in missing)
+        {
+            book.Added = File.GetLastWriteTime(this.ArchivePath(book));
+            _context.Update(book);
+        }
+        await _context.SaveChangesAsync(ct);
+    }
 
     private string ArchivePath(Book book) => Path.Combine(_bookFolder, book.FileName);
 

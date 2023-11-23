@@ -4,7 +4,7 @@ internal class BookCoverUriConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value switch
     {
-        Book book => $"http://gordon:5000/book/{book.Id}/cover?height=250",
+        Book book => $"http://{MauiProgram.Host}:5000/book/{book.Id}/cover?height=250",
         _ => string.Empty
     };
 
@@ -19,7 +19,7 @@ internal class BookPageUriConverter : IMultiValueConverter
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture) =>
         values switch
         {
-            [int bookId, int pageNumber] => $"http://gordon:5000/book/{bookId}/{pageNumber}",
+            [int bookId, int pageNumber] => $"http://{MauiProgram.Host}:5000/book/{bookId}/{pageNumber}",
             _ => default
         };
 
