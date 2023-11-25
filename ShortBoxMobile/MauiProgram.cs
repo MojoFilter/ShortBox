@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Maui;
+using MauiPageFullScreen;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
@@ -22,6 +23,7 @@ namespace ShortBoxMobile
             builder
                 .UseMauiApp<App>()
                 .UseMauiCommunityToolkit()
+                .UseFullScreen()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

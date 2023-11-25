@@ -1,3 +1,4 @@
+using MauiPageFullScreen;
 using System.Diagnostics;
 
 namespace ShortBoxMobile;
@@ -8,6 +9,18 @@ public partial class BookPage : ContentPage
 	{
 		InitializeComponent();
 		this.BindingContext = vm;
+	}
+
+    public bool IsZoomed => this.comicPageContainer?.Scale > 1.0 == true;
+
+    protected override void OnAppearing()
+    {
+		Controls.FullScreen();
+    }
+
+	protected override void OnDisappearing()
+	{
+		Controls.RestoreScreen();
 	}
 
     private void OnPageTapped(object sender, TappedEventArgs e)
@@ -77,7 +90,6 @@ public partial class BookPage : ContentPage
 		await this.ToggleZoom();
     }
 
-	public bool IsZoomed => this.comicPageContainer?.Scale > 1.0 == true;
 
     private void OnPanUpdated(object sender, PanUpdatedEventArgs e)
     {
@@ -101,13 +113,6 @@ public partial class BookPage : ContentPage
     }
 
 	private Point? _panStart;
-
- //   private void OnPageSwiped(object sender, SwipedEventArgs e) => (e.Direction switch
-	//{
-	//	SwipeDirection.Right => this.ViewModel.PreviousPageCommand,
-	//	SwipeDirection.Left => this.ViewModel.NextPageCommand,
-	//	_ => null
-	//})?.Execute(default);
 }
 
 //[QueryProperty(nameof(PageNumber), "page")]
