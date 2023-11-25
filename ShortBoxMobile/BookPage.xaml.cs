@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace ShortBoxMobile;
 
 public partial class BookPage : ContentPage
@@ -8,62 +10,104 @@ public partial class BookPage : ContentPage
 		this.BindingContext = vm;
 	}
 
+    private void OnPageTapped(object sender, TappedEventArgs e)
+    {
+		var command = GetTapArea(e.GetPosition(this.inputView), this.inputView) switch
+		{
+			TapArea.Left => this.ViewModel.PreviousPageCommand,
+			TapArea.Right => this.ViewModel.NextPageCommand,
+			_ => new RelayCommand(this.ToggleNavBar)
+		};
+		command?.Execute(default);
+    }
+
+    private void ToggleNavBar()
+    {
+		Shell.SetNavBarIsVisible(this, !Shell.GetNavBarIsVisible(this));
+    }
+
+	private BookPageViewModel ViewModel => this.BindingContext as BookPageViewModel;
+
+    private void OnLeftAreaTapped(object sender, TappedEventArgs e)
+    {
+		this.ViewModel.PreviousPageCommand.Execute(default);
+    }
+
+    private void OnRightAreaTapped(object sender, TappedEventArgs e)
+    {
+        this.ViewModel.NextPageCommand.Execute(default);
+    }
+
     private void PinchGestureRecognizer_PinchUpdated(object sender, PinchGestureUpdatedEventArgs e)
     {
-		switch (e.Status)
-		{
-			case GestureStatus.Started:
-				this.startScale = Content.Scale;
-				this.comicPageContainer.AnchorX = 0;
-				this.comicPageContainer.AnchorY = 0;
-				break;
-			case GestureStatus.Running:
-				(this.comicPageContainer.TranslationX,
-					this.comicPageContainer.TranslationY,
-					this.comicPageContainer.Scale) =
-					this.CalculateScale(e.Scale, e.ScaleOrigin);
-				break;
-			case GestureStatus.Completed:
-				this.xOffset = this.comicPageContainer.TranslationX;
-				this.yOffset = this.comicPageContainer.TranslationX;
-				break;
+		var newScale = Math.Clamp(1.0, this.comicPageContainer.Scale * e.Scale, 3.0);
+		this.comicPageContainer.Scale = newScale;
+		this.comicPageContainer.TranslationX = e.ScaleOrigin.X;
+		this.comicPageContainer.TranslationY = e.ScaleOrigin.Y;
+		Debug.WriteLine("Scale: {0}", newScale);
+    }
+
+	private async Task ToggleZoom()
+	{
+		var newScale = this.IsZoomed ? 1.0 : 2.0;
+		await Task.WhenAll(
+		this.comicPageContainer.ScaleTo(newScale, easing: Easing.CubicInOut),
+			this.comicPageContainer.TranslateTo(0, 0, easing: Easing.SinInOut));
+		this.OnPropertyChanged(nameof(IsZoomed));
+	}
+
+	private const double SideAreaPercent = 1.0 / 6.0;
+
+	private TapArea GetTapArea(Point? point, View container) => point switch
+	{
+		Point p when (p.X < container.Width * SideAreaPercent) => TapArea.Left,
+		Point p when (p.X > container.Width - (container.Width * SideAreaPercent)) => TapArea.Right,
+		_ => TapArea.Main
+	};
+
+	private enum TapArea
+	{
+		Left, 
+		Right,
+		Main,
+	}
+
+    private async void OnPageDoubleTapped(object sender, TappedEventArgs e)
+    {
+		await this.ToggleZoom();
+    }
+
+	public bool IsZoomed => this.comicPageContainer?.Scale > 1.0 == true;
+
+    private void OnPanUpdated(object sender, PanUpdatedEventArgs e)
+    {
+		if (this.IsZoomed) {
+			switch (e.StatusType) {
+				case GestureStatus.Started:
+					_panStart = new(this.comicPageContainer.TranslationX, this.comicPageContainer.TranslationY);
+					break;
+				case GestureStatus.Running:
+					if (_panStart is Point start)
+					{
+						this.comicPageContainer.TranslationX = start.X + (e.TotalX * this.comicPageContainer.Scale);
+						this.comicPageContainer.TranslationY = start.Y + (e.TotalY * this.comicPageContainer.Scale);
+					}
+					break;
+				default:
+					_panStart = default;
+					break;
+			}
 		}
     }
 
-	private (double x, double y, double scale) CalculateScale(double scale, Point scaleOrigin)
-	{
-        // Calculate the scale factor to be applied.
-        currentScale += (scale - 1) * startScale;
-        currentScale = Math.Max(1, currentScale);
+	private Point? _panStart;
 
-        // The ScaleOrigin is in relative coordinates to the wrapped user interface element,
-        // so get the X pixel coordinate.
-        double renderedX = Content.X + xOffset;
-        double deltaX = renderedX / Width;
-        double deltaWidth = Width / (Content.Width * startScale);
-        double originX = (scaleOrigin.X - deltaX) * deltaWidth;
-
-        // The ScaleOrigin is in relative coordinates to the wrapped user interface element,
-        // so get the Y pixel coordinate.
-        double renderedY = Content.Y + yOffset;
-        double deltaY = renderedY / Height;
-        double deltaHeight = Height / (Content.Height * startScale);
-        double originY = (scaleOrigin.Y - deltaY) * deltaHeight;
-
-        // Calculate the transformed element pixel coordinates.
-        double targetX = xOffset - (originX * Content.Width) * (currentScale - startScale);
-        double targetY = yOffset - (originY * Content.Height) * (currentScale - startScale);
-
-		return (
-			Math.Clamp(targetX, -Content.Width * (currentScale - 1), 0),
-			Math.Clamp(targetY, -Content.Height * (currentScale - 1), 0),
-			currentScale);
-    }
-
-    double currentScale = 1;
-    double startScale = 1;
-    double xOffset = 0;
-    double yOffset = 0;
+ //   private void OnPageSwiped(object sender, SwipedEventArgs e) => (e.Direction switch
+	//{
+	//	SwipeDirection.Right => this.ViewModel.PreviousPageCommand,
+	//	SwipeDirection.Left => this.ViewModel.NextPageCommand,
+	//	_ => null
+	//})?.Execute(default);
 }
 
 //[QueryProperty(nameof(PageNumber), "page")]

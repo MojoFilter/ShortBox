@@ -35,6 +35,10 @@ public sealed partial class MainPageViewModel : ObservableObject
         this.Books = await _client.GetAllBooksAsync();
     }
 
+    [RelayCommand]
+    private Task OpenBook(Book book) => Shell.Current.GoToAsync($"{nameof(BookPage)}?bookId={book.Id}");
+    
+
     [ObservableProperty]
     private IEnumerable<Book> _books;
 

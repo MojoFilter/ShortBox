@@ -13,4 +13,5 @@
 
         public static App CurrentApp => Current as App;
     }
+
 }
