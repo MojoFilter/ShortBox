@@ -24,6 +24,7 @@ internal class FolderBookStoreOptions {
 
 internal class FolderBookStore : IFolderBookStore, IBookStore {
 
+
     public FolderBookStore(
         IOptions<FolderBookStoreOptions> options,
         ShortBoxContext context,
@@ -37,6 +38,7 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
 
     public async Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken) =>
         (await _context.Books
+                .WhereUnread()
                 .GroupBy(b => b.Series)
                 .Select(group => new Series(group.Key ?? string.Empty))
                 .ToListAsync()).AsEnumerable();
@@ -84,7 +86,10 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
     }
 
     public async Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken ct) =>
-        (await _context.Books.Where(b => string.Equals(b.Series, seriesName)).ToListAsync()).AsEnumerable();
+        (await _context.Books
+            .Where(b => string.Equals(b.Series, seriesName))
+            .WhereUnread()
+            .ToListAsync()).AsEnumerable();
 
     private async Task<Book> GetBookByIdAsync(int bookId, CancellationToken ct) =>
         await _context.Books.FirstOrDefaultAsync(b => b.Id == bookId, ct) 
@@ -106,7 +111,7 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
         };
 
     public Task<List<Book>> GetRecentBooksAsync(CancellationToken ct) =>
-        _context.Books.OrderByDescending(b => b.Added).ToListAsync(ct);
+        _context.Books.WhereUnread().OrderByDescending(b => b.Added).ToListAsync(ct);
         
     private static readonly DateTime tooOld = new(2000, 1, 1);
 
@@ -131,9 +136,17 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
                 .ExecuteUpdateAsync(s => s.SetProperty(b => b.CurrentPage, pageNumber));
     
 
-    private string _bookFolder;
-    private ShortBoxContext _context;
+    private readonly ShortBoxContext _context;
+    private readonly string _bookFolder;
     private readonly IComicFileReader _reader;
     private readonly IImageBusiness _imageBusiness;
     //private IComicFolderScanner _scanner;
+}
+
+internal static class EfExtensions
+{
+    private const double ReadThreshold = 0.91; // 91%
+
+    public static IQueryable<Book> WhereUnread(this IQueryable<Book> books) =>
+        books.Where(b => b.PageCount == null || (b.CurrentPage / (double)b.PageCount) < ReadThreshold);
 }

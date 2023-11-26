@@ -16,8 +16,8 @@ namespace ShortBoxMobile
             Host = DeviceInfo.Platform switch
             {
                 //var p when p == DevicePlatform.Android && Debugger.IsAttached => "10.0.2.2",
-                var p when p == DevicePlatform.Android => "192.168.86.57",
-                _ => "gordon"
+                var p when p == DevicePlatform.Android => "192.168.86.47",
+                _ => "jweeks-spector"
             };
 
             builder

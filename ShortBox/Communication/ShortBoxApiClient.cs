@@ -1,4 +1,6 @@
-﻿namespace ShortBox.Communication;
+﻿using System.Diagnostics;
+
+namespace ShortBox.Communication;
 
 public interface IShortBoxApiClient
 {
@@ -50,10 +52,12 @@ internal sealed class ShortBoxApiClient : IShortBoxApiClient
         IEnumerable<T> getDefault() => Enumerable.Empty<T>();
         try
         {
-            return (await _httpClient.GetFromJsonAsync<IEnumerable<T>>(uri, cancellationToken)) ?? getDefault();
+            var result = await _httpClient.GetFromJsonAsync<IEnumerable<T>>(uri, cancellationToken);
+            return result ?? getDefault();
         }
-        catch
+        catch (Exception ex) 
         {
+            //Debug.WriteLine(ex.Message);
             return getDefault();
         }
     }
