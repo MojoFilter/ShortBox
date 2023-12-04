@@ -4,6 +4,7 @@ namespace ShortBox.Communication;
 
 public interface IShortBoxApiClient
 {
+    Task CombineSeriesNamesAsync(string[] seriesToCombine, string combinedName, CancellationToken cancellationToken);
     Task<IEnumerable<Book>> GetAllBooksAsync(CancellationToken cancellationToken = default);
     Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken = default);
     Task<Book?> GetBookAsync(int bookId, CancellationToken cancellationToken = default);
@@ -60,6 +61,10 @@ internal sealed class ShortBoxApiClient : IShortBoxApiClient
             //Debug.WriteLine(ex.Message);
             return getDefault();
         }
+    }
+
+    public async Task CombineSeriesNamesAsync(string[] seriesToCombine, string combinedName, CancellationToken cancellationToken)
+    {
     }
 
     private readonly HttpClient _httpClient;

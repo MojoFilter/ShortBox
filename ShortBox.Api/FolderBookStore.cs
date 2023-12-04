@@ -40,6 +40,7 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
         (await _context.Books
                 .WhereUnread()
                 .GroupBy(b => b.Series)
+                .OrderByDescending(g => g.Select(b=>b.Modified).Max())
                 .Select(group => new Series(group.Key ?? string.Empty))
                 .ToListAsync()).AsEnumerable();
 
@@ -89,6 +90,7 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
         (await _context.Books
             .Where(b => string.Equals(b.Series, seriesName))
             .WhereUnread()
+            .OrderBy(b=>b.Number)
             .ToListAsync()).AsEnumerable();
 
     private async Task<Book> GetBookByIdAsync(int bookId, CancellationToken ct) =>
@@ -133,7 +135,9 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
     public Task MarkPageAsync(int bookId, int pageNumber, CancellationToken ct) =>
         _context.Books
                 .Where(b => b.Id == bookId)
-                .ExecuteUpdateAsync(s => s.SetProperty(b => b.CurrentPage, pageNumber));
+                .ExecuteUpdateAsync(s =>
+                    s.SetProperty(b => b.CurrentPage, pageNumber)
+                     .SetProperty(b => b.Modified, DateTime.Now));
     
 
     private readonly ShortBoxContext _context;

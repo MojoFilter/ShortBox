@@ -5,6 +5,11 @@ namespace ShortBox.Web.Server;
 
 public class TestClient : IShortBoxApiClient
 {
+    public Task CombineSeriesNamesAsync(string[] seriesToCombine, string combinedName, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<IEnumerable<Book>> GetAllBooksAsync(CancellationToken cancellationToken = default) => Task.FromResult(
         Enumerable.Range(0, 100).Select(i => new Book()
         {
