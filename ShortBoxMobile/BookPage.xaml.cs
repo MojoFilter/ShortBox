@@ -37,6 +37,14 @@ public partial class BookPage : ContentPage
     private void ToggleNavBar()
     {
 		Shell.SetNavBarIsVisible(this, !Shell.GetNavBarIsVisible(this));
+		if (Shell.GetNavBarIsVisible(this))
+		{
+			Controls.RestoreScreen();
+		}
+		else
+		{
+			Controls.FullScreen();
+		}
     }
 
 	private BookPageViewModel ViewModel => this.BindingContext as BookPageViewModel;

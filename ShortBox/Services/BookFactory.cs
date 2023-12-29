@@ -18,9 +18,10 @@ internal class BookFactory : IBookFactory
         var book = new Book() 
         {
             FileName = Path.GetFileName(fileName),
-            Added = DateTime.Now
+            Added = DateTime.Now,
+            Modified = DateTime.Now
         };
-        using var stream = reader.GetInfoStream(fileName);
+        using var stream = await reader.GetInfoStreamAsync(fileName);
         if (stream is Stream)
         {
             var info = await _comicInfoReader.ReadAsync(stream, cancellationToken);

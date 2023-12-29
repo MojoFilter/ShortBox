@@ -5,7 +5,7 @@ public interface IFolderBookStore
     Task<bool> ExistsAsync(string file, CancellationToken cancellationToken);
     Task<IEnumerable<string>> GetRarFilesAsync(CancellationToken cancellationToken);
     Task<IEnumerable<string>> GetZipFilesAsync(CancellationToken cancellationToken);
-    Task CacheCoverAsync(Book book, Func<Stream?> getCoverStream, CancellationToken ct);
+    Task CacheCoverAsync(Book book, Func<Task<Stream?>> getCoverStream, CancellationToken ct);
     Task AddBooksAsync(IEnumerable<Book> books, CancellationToken ct);
     Task RepairMissingDatesAsync(CancellationToken ct);
 }
@@ -61,7 +61,7 @@ internal class ComicFolderScanner : IComicFolderScanner
     {
         var book = await _bookFactory.CreateFromInfoAsync(fileName, reader, ct);
         book.PageCount = book.PageCount ?? reader.GetPageCount(fileName);
-        await _store.CacheCoverAsync(book, () => reader.OpenCover(fileName), ct);
+        await _store.CacheCoverAsync(book, () => reader.OpenCoverAsync(fileName), ct);
         return book;
     }
 

@@ -53,8 +53,8 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
         return await this.GetCoverFileAsync(firstBook, height, cancellationToken);
     }
             
-    public async Task CacheCoverAsync(Book book, Func<Stream?> getCoverStream, CancellationToken ct) {
-        using var coverStream = getCoverStream();
+    public async Task CacheCoverAsync(Book book, Func<Task<Stream?>> getCoverStream, CancellationToken ct) {
+        using var coverStream = await getCoverStream();
         if (coverStream is not null) {
             var fileName = this.CoverFilePath(book);
             using var file = File.Create(fileName);

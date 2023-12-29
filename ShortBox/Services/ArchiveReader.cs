@@ -5,21 +5,21 @@ namespace ShortBox.Services;
 
 public interface IArchiveReader
 {
-    Stream? GetInfoStream(string fileName);
+    Task<Stream?> GetInfoStreamAsync(string fileName);
     int GetPageCount(string fileName);
-    Stream? OpenCover(string fileName);
-    Stream? OpenPage(string fileName, int pageIndex);
+    Task<Stream?> OpenCoverAsync(string fileName);
+    Task<Stream?> OpenPageAsync(string fileName, int pageIndex);
 }
 
 internal abstract class ArchiveReader : IArchiveReader
 {
     public static readonly string ComicInfoFileName = "ComicInfo.xml";
 
-    public Stream? GetInfoStream(string fileName)
+    public async Task<Stream?> GetInfoStreamAsync(string fileName)
     {
         using var archive = this.OpenArchive(fileName);
         var infoEntry = archive.FileEntries.FirstOrDefault(e => string.Equals(e.Name, ArchiveReader.ComicInfoFileName, StringComparison.InvariantCultureIgnoreCase));
-        return this.CopyEntry(infoEntry);
+        return await this.CopyEntryAsync(infoEntry);
     }
 
     public int GetPageCount(string fileName)
@@ -28,9 +28,9 @@ internal abstract class ArchiveReader : IArchiveReader
         return archive.FileEntries.Count() - 1;
     }
 
-    public Stream? OpenCover(string fileName) => this.OpenPage(fileName, 0);
+    public Task<Stream?> OpenCoverAsync(string fileName) => this.OpenPageAsync(fileName, 0);
 
-    public Stream? OpenPage(string fileName, int pageNumber)
+    public async Task<Stream?> OpenPageAsync(string fileName, int pageNumber)
     {
         using var archive = this.OpenArchive(fileName);
         var pageEntry =
@@ -39,15 +39,15 @@ internal abstract class ArchiveReader : IArchiveReader
                .OrderBy(e => e.Name)
                .Skip(pageNumber)
                .FirstOrDefault();
-        return this.CopyEntry(pageEntry);
+        return await this.CopyEntryAsync(pageEntry);
     }
 
-    private Stream? CopyEntry(IArchiveFileEntry? entry)
+    private async Task<Stream?> CopyEntryAsync(IArchiveFileEntry? entry)
     {
         if (this.OpenEntry(entry) is Stream archiveStream)
         {
             MemoryStream memoryStream = new();
-            archiveStream.CopyTo(memoryStream);
+            await archiveStream.CopyToAsync(memoryStream);
             memoryStream.Position = 0;
             return memoryStream;
         }

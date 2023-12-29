@@ -1,0 +1,7 @@
+﻿@ShortBox.Api_HostAddress = http://jweeks-spector:5000
+@BookId = 235
+@PageNumber = 4
+
+GET {{ShortBox.Api_HostAddress}}/book/{{BookId}}/{{PageNumber}}
+
+###

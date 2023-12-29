@@ -7,10 +7,10 @@ public interface IArchiveReaderFactory
 
 public interface IKnownFileArchiveReader
 {
-    Stream? GetInfoStream();
+    Task<Stream?> GetInfoStreamAsync();
     int GetPageCount();
-    Stream? OpenCover();
-    Stream? OpenPage(int pageIndex);
+    Task<Stream?> OpenCoverAsync();
+    Task<Stream?> OpenPageAsync(int pageIndex);
 }
 
 internal sealed class ArchiveReaderFactory : IArchiveReaderFactory 
@@ -30,13 +30,13 @@ internal sealed class ArchiveReaderFactory : IArchiveReaderFactory
             _reader = reader;
         }
 
-        public Stream? GetInfoStream() => _reader.GetInfoStream(_fileName);
+        public Task<Stream?> GetInfoStreamAsync() => _reader.GetInfoStreamAsync(_fileName);
 
         public int GetPageCount() => _reader.GetPageCount(_fileName);
 
-        public Stream? OpenCover() => _reader.OpenCover(_fileName);
+        public Task<Stream?> OpenCoverAsync() => _reader.OpenCoverAsync(_fileName);
 
-        public Stream? OpenPage(int pageIndex) => _reader.OpenPage(_fileName, pageIndex);
+        public Task<Stream?> OpenPageAsync(int pageIndex) => _reader.OpenPageAsync(_fileName, pageIndex);
 
         private readonly string _fileName;
         private readonly IArchiveReader _reader;
