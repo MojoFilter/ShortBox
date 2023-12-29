@@ -4,7 +4,7 @@
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              xmlns:local="clr-namespace:ShortBoxMobile"
              x:Class="ShortBoxMobile.BookPage"
-             Title="{Binding Title}"
+             Shell.TitleColor="AliceBlue"
              Shell.NavBarIsVisible="False"
              x:Name="page"
              x:DataType="local:BookPageViewModel">
@@ -16,6 +16,13 @@
         <local:BookPageUriConverter x:Key="uriConverter" />
         <toolkit:InvertedBoolConverter x:Key="invertConvert" />
     </ContentPage.Resources>
+    <Shell.TitleView>
+        <HorizontalStackLayout VerticalOptions="Fill">
+            <Label Text="{Binding Title}"
+                   TextColor="Bisque"
+                   VerticalTextAlignment="Center"/>
+        </HorizontalStackLayout>
+    </Shell.TitleView>
     <Grid x:Name="inputView">
         <ContentView x:Name="comicPageContainer">
             <Image Aspect="AspectFit">

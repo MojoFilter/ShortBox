@@ -34,18 +34,18 @@ public partial class BookPage : ContentPage
 		command?.Execute(default);
     }
 
-    private void ToggleNavBar()
-    {
+	private void ToggleNavBar()
+	{
 		Shell.SetNavBarIsVisible(this, !Shell.GetNavBarIsVisible(this));
-		if (Shell.GetNavBarIsVisible(this))
-		{
-			Controls.RestoreScreen();
-		}
-		else
-		{
-			Controls.FullScreen();
-		}
-    }
+		//if (Shell.GetNavBarIsVisible(this))
+		//{
+		//	Controls.RestoreScreen();
+		//}
+		//else
+		//{
+		//	Controls.FullScreen();
+		//}
+	}
 
 	private BookPageViewModel ViewModel => this.BindingContext as BookPageViewModel;
 
@@ -155,9 +155,7 @@ public sealed partial class BookPageViewModel : ObservableObject
 	{ 
 		this.PageNumber = int.Max(0, int.Min(this.PageNumber + delta, this.Book.PageCount ?? 0 - 1));
 	}
-
 	
-
     protected override async void OnPropertyChanged(PropertyChangedEventArgs e)
     {
 		base.OnPropertyChanged(e);
@@ -169,6 +167,7 @@ public sealed partial class BookPageViewModel : ObservableObject
 				this.SetTitle();
 				break;
 			case nameof(PageNumber):
+				this.SetTitle();
 				await this.MarkPage();
 				break;
 			default:
@@ -178,8 +177,8 @@ public sealed partial class BookPageViewModel : ObservableObject
 
     private void SetTitle()
     {
-		this.Title = $"{this.Book?.Series} #{this.Book?.Number}";
-	}
+		this.Title = $"{this.Book?.Series} #{this.Book?.Number} pg. {this.PageNumber}/{this.Book?.PageCount}";
+    }
 
 	private async Task MarkPage()
 	{
