@@ -23,41 +23,44 @@
                    VerticalTextAlignment="Center"/>
         </HorizontalStackLayout>
     </Shell.TitleView>
-    <Grid x:Name="inputView">
-        <ContentView x:Name="comicPageContainer">
-            <Image Aspect="AspectFit">
-                <Image.Source>
-                    <UriImageSource>
-                        <UriImageSource.Uri>
-                            <MultiBinding Converter="{StaticResource uriConverter}">
-                                <Binding Path="BookId" />
-                                <Binding Path="PageNumber" />
-                            </MultiBinding>
-                        </UriImageSource.Uri>
-                    </UriImageSource>
-                </Image.Source>
-            </Image>
-        </ContentView>
-        <ContentView x:Name="standardInputPanel" 
+    <RefreshView>
+        <Grid x:Name="inputView">
+            <ContentView x:Name="comicPageContainer">
+                <Image x:Name="pageImage"
+                       Aspect="AspectFit">
+                    <Image.Source>
+                        <UriImageSource>
+                            <UriImageSource.Uri>
+                                <MultiBinding Converter="{StaticResource uriConverter}">
+                                    <Binding Path="BookId" />
+                                    <Binding Path="PageNumber" />
+                                </MultiBinding>
+                            </UriImageSource.Uri>
+                        </UriImageSource>
+                    </Image.Source>
+                </Image>
+            </ContentView>
+            <ContentView x:Name="standardInputPanel" 
                      Opacity=".3"
                      IsVisible="{Binding IsZoomed, Source={x:Reference page}, Converter={StaticResource invertConvert}}">
-            <ContentView.GestureRecognizers>
-                <PinchGestureRecognizer PinchUpdated="PinchGestureRecognizer_PinchUpdated" />
-                <TapGestureRecognizer Tapped="OnPageTapped" />
-                <TapGestureRecognizer Tapped="OnPageDoubleTapped" NumberOfTapsRequired="2" />
-                <SwipeGestureRecognizer Direction="Left" Command="{Binding NextPageCommand}" />
-                <SwipeGestureRecognizer Direction="Right" Command="{Binding PreviousPageCommand}" />
-            </ContentView.GestureRecognizers>
-        </ContentView>
-        <ContentView x:Name="zoomedInputPanel"
+                <ContentView.GestureRecognizers>
+                    <PinchGestureRecognizer PinchUpdated="PinchGestureRecognizer_PinchUpdated" />
+                    <TapGestureRecognizer Tapped="OnPageTapped" />
+                    <TapGestureRecognizer Tapped="OnPageDoubleTapped" NumberOfTapsRequired="2" />
+                    <SwipeGestureRecognizer Direction="Left" Command="{Binding NextPageCommand}" />
+                    <SwipeGestureRecognizer Direction="Right" Command="{Binding PreviousPageCommand}" />
+                </ContentView.GestureRecognizers>
+            </ContentView>
+            <ContentView x:Name="zoomedInputPanel"
                      Opacity=".3"
                      IsVisible="{Binding IsZoomed, Source={x:Reference page}}">
-            <ContentView.GestureRecognizers>
-                <PinchGestureRecognizer PinchUpdated="PinchGestureRecognizer_PinchUpdated" />
-                <TapGestureRecognizer Tapped="OnPageTapped" />
-                <TapGestureRecognizer Tapped="OnPageDoubleTapped" NumberOfTapsRequired="2" />
-                <PanGestureRecognizer PanUpdated="OnPanUpdated" />
-            </ContentView.GestureRecognizers>
-        </ContentView>
-    </Grid>
+                <ContentView.GestureRecognizers>
+                    <PinchGestureRecognizer PinchUpdated="PinchGestureRecognizer_PinchUpdated" />
+                    <TapGestureRecognizer Tapped="OnPageTapped" />
+                    <TapGestureRecognizer Tapped="OnPageDoubleTapped" NumberOfTapsRequired="2" />
+                    <PanGestureRecognizer PanUpdated="OnPanUpdated" />
+                </ContentView.GestureRecognizers>
+            </ContentView>
+        </Grid>
+    </RefreshView>
 </ContentPage>

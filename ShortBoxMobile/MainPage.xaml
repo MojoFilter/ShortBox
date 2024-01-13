@@ -6,7 +6,8 @@
     <ContentPage.Resources>
         <local:BookCoverUriConverter x:Key="coverConverter" />
     </ContentPage.Resources>
-    <!--<ScrollView>-->
+    <RefreshView IsRefreshing="{Binding IsRefreshing}"
+                 Command="{Binding RefreshBooksCommand}">
         <CollectionView x:Name="booksView"
                         ItemsSource="{Binding Books}"
                         ItemsLayout="VerticalGrid, 4"
@@ -38,6 +39,6 @@
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
-    <!--</ScrollView>-->
+    </RefreshView>
 
 </ContentPage>

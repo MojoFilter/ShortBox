@@ -113,7 +113,8 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
         };
 
     public Task<List<Book>> GetRecentBooksAsync(CancellationToken ct) =>
-        _context.Books.WhereUnread().OrderByDescending(b => b.Added).ToListAsync(ct);
+        _context.Books.WhereUnread()
+                      .OrderByDescending(b => b.Modified).ToListAsync(ct);
         
     private static readonly DateTime tooOld = new(2000, 1, 1);
 

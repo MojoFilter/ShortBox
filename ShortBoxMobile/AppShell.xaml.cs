@@ -1,31 +1,37 @@
-﻿namespace ShortBoxMobile
+﻿namespace ShortBoxMobile;
+
+public partial class AppShell : Shell
 {
-    public partial class AppShell : Shell
+    private readonly IShortBoxApiClient _client;
+
+    public AppShell(IShortBoxApiClient shortBoxApiClient)
     {
-        private readonly IShortBoxApiClient _client;
+        _client = shortBoxApiClient;
+        InitializeComponent();
+        this.Loaded += AppShell_Loaded;
+        Routing.RegisterRoute(nameof(BookPage), typeof(BookPage));
+    }
 
-        public AppShell(IShortBoxApiClient shortBoxApiClient)
-        {
-            _client = shortBoxApiClient;
-            InitializeComponent();
-            this.Loaded += AppShell_Loaded;
-            Routing.RegisterRoute(nameof(BookPage), typeof(BookPage));
-        }
+    private async void AppShell_Loaded(object sender, EventArgs e)
+    {
+        await this.RefreshSeriesAsync();
+    }
 
-        private async void AppShell_Loaded(object sender, EventArgs e)
+    private async Task RefreshSeriesAsync()
+    {
+        var allSeries = await _client.GetAllSeriesAsync();
+        var seriesStyle = this.Resources["seriesStyle"] as Style;
+        foreach (var series in allSeries)
         {
-            var allSeries = await _client.GetAllSeriesAsync();
-            var seriesStyle = this.Resources["seriesStyle"] as Style;
-            foreach (var series in allSeries)
+            var item = new ShellContent()
             {
-                var item = new ShellContent()
-                {
-                    BindingContext = series,
-                    Style = seriesStyle,
-                    Route = series.Name
-                };
-                this.seriesContainer.Items.Add(item);
-            }
+                BindingContext = series,
+                Style = seriesStyle,
+                Route = series.Name
+            };
+            this.seriesContainer.Items.Add(item);
         }
     }
 }
+
+

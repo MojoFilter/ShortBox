@@ -37,10 +37,26 @@ public sealed partial class MainPageViewModel : ObservableObject
 
     [RelayCommand]
     private Task OpenBook(Book book) => Shell.Current.GoToAsync($"{nameof(BookPage)}?bookId={book.Id}");
-    
+
+    [RelayCommand]
+    private async Task RefreshBooksAsync()
+    {
+        try
+        {
+            this.IsRefreshing = true;
+            await this.LoadBooksAsync();
+        }
+        finally
+        {
+            this.IsRefreshing = false;
+        }
+    }
 
     [ObservableProperty]
     private IEnumerable<Book> _books;
+
+    [ObservableProperty]
+    private bool _isRefreshing;
 
     private readonly IShortBoxApiClient _client;
 }
