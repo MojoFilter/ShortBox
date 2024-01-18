@@ -62,6 +62,11 @@ app.MapGet("series/{seriesName}", (string seriesName, IBookStore store, Cancella
     .WithName("GetIssues")
     .WithOpenApi();
 
+app.MapGet("series/{seriesName}/archive", (string seriesName, IBookStore store, CancellationToken ct) =>
+        store.GetSeriesArchiveAsync(seriesName, ct))
+    .WithName("GetSeriesArchive")
+    .WithOpenApi();
+
 app.MapGet("/scan", (IComicFolderScanner scanner, CancellationToken ct) => scanner.ScanFolderAsync(ct))
    .WithName("Scan")
    .WithOpenApi();

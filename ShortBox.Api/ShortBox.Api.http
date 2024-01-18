@@ -1,7 +1,10 @@
 ﻿@ShortBox.Api_HostAddress = http://jweeks-spector:5000
-@BookId = 235
-@PageNumber = 4
-
-GET {{ShortBox.Api_HostAddress}}/book/{{BookId}}/{{PageNumber}}
+@SeriesName = "Fantastic Four"
 
 ###
+
+GET {{ShortBox.Api_HostAddress}}/series/{{SeriesName}}
+
+###
+GET {{ShortBox.Api_HostAddress}}/series/{{SeriesName}}/archive
+

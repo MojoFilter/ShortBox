@@ -14,6 +14,7 @@ public interface IBookStore {
     Task<byte[]> GetBookPageAsync(int bookId, int pageNumber, CancellationToken ct);
     Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken ct);
     Task<List<Book>> GetRecentBooksAsync(CancellationToken ct);
+    Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken ct);
     Task<byte[]> GetSeriesCoverAsync(string seriesName, int? height, CancellationToken cancellationToken);
     Task MarkPageAsync(int bookId, int pageNumber, CancellationToken ct);    
 }
@@ -86,12 +87,17 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
         return await this.GetCoverFileAsync(book, height, ct);
     }
 
-    public async Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken ct) =>
+    public Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken ct) => this.GetIssuesAsync(seriesName, true, ct);
+
+
+    public Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken ct) => this.GetIssuesAsync(seriesName, false, ct);
+
+    private async Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, bool unread, CancellationToken ct) =>
         (await _context.Books
             .Where(b => string.Equals(b.Series, seriesName))
-            .WhereUnread()
+            .WhereUnread(unread)
             .OrderBy(b=>b.Number)
-            .ToListAsync()).AsEnumerable();
+            .ToListAsync(ct)).AsEnumerable();
 
     private async Task<Book> GetBookByIdAsync(int bookId, CancellationToken ct) =>
         await _context.Books.FirstOrDefaultAsync(b => b.Id == bookId, ct) 
@@ -139,7 +145,7 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
                 .ExecuteUpdateAsync(s =>
                     s.SetProperty(b => b.CurrentPage, pageNumber)
                      .SetProperty(b => b.Modified, DateTime.Now));
-    
+
 
     private readonly ShortBoxContext _context;
     private readonly string _bookFolder;
@@ -152,6 +158,10 @@ internal static class EfExtensions
 {
     private const double ReadThreshold = 0.91; // 91%
 
-    public static IQueryable<Book> WhereUnread(this IQueryable<Book> books) =>
-        books.Where(b => b.PageCount == null || (b.CurrentPage / (double)b.PageCount) < ReadThreshold);
+    public static IQueryable<Book> WhereUnread(this IQueryable<Book> books, bool unread = true) =>
+        books.Where(b => (b.PageCount == null || (b.CurrentPage / (double)b.PageCount) < ReadThreshold) == unread);
+
+
+    //EF doesn't like the extension method
+    //private static bool BookIsUnread(Book b) => b.PageCount == null || (b.CurrentPage / (double)b.PageCount) < ReadThreshold;
 }

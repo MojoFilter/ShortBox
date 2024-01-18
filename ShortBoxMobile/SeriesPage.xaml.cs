@@ -37,7 +37,7 @@ public sealed partial class SeriesPageViewModel : ObservableObject
     private Series _series;
 
     [ObservableProperty]
-    private IEnumerable<Book> _books;
+    private IEnumerable<BookGroup> _bookGroups;
 
     [RelayCommand]
     private Task OpenBookAsync(Book book) => book switch
@@ -50,9 +50,25 @@ public sealed partial class SeriesPageViewModel : ObservableObject
     {
         if (this.Series is not null)
         {
-            this.Books = await _client.GetIssuesAsync(this.Series.Name);
+            var unreadTask = _client.GetIssuesAsync(this.Series.Name);
+            var readTask = _client.GetSeriesArchiveAsync(this.Series.Name);
+            this.BookGroups = new BookGroup[]
+            {
+                new("New", await unreadTask),
+                new("Archive", await readTask)
+            }.Where(group => group.Any());
         }
     }
 
     private readonly IShortBoxApiClient _client;
+}
+
+public class BookGroup : List<Book>
+{
+    public BookGroup(string name, IEnumerable<Book> books) : base(books)
+    {
+        this.Name = name;
+    }
+
+    public string Name { get; }
 }

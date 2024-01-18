@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace ShortBox.Communication;
+﻿namespace ShortBox.Communication;
 
 public interface IShortBoxApiClient
 {
@@ -11,6 +9,7 @@ public interface IShortBoxApiClient
     Task<Stream> GetBookCoverAsync(int bookId, int? height, CancellationToken cancellationToken);
     Task<Stream> GetBookPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken);
     Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken cancellationToken = default);
     Task<Stream> GetSeriesCoverAsync(string seriesName, int? height, CancellationToken cancellationToken = default);
     Task MarkPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken);
 }
@@ -41,6 +40,10 @@ internal sealed class ShortBoxApiClient : IShortBoxApiClient
 
     public Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken cancellationToken = default) =>
         GetSomeAsync<Book>($"series/{seriesName}", cancellationToken);
+
+    public Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken cancellationToken = default) =>
+        GetSomeAsync<Book>($"series/{seriesName}/archive", cancellationToken);
+
 
     public Task<Stream> GetBookPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken = default) =>
         _httpClient.GetStreamAsync($"book/{bookId}/{pageNumber}", cancellationToken);

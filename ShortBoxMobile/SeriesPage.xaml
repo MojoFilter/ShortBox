@@ -8,7 +8,8 @@
     </ContentPage.Resources>
     <CollectionView x:Name="booksView" 
 					ItemsLayout="VerticalGrid, 4"
-					ItemsSource="{Binding Books}"
+					ItemsSource="{Binding BookGroups}"
+                    IsGrouped="True"
                     SelectionMode="Single">
         <CollectionView.ItemTemplate>
             <DataTemplate>
@@ -32,5 +33,13 @@
 				</Grid>
 			</DataTemplate>
 		</CollectionView.ItemTemplate>
+        <CollectionView.GroupHeaderTemplate>
+            <DataTemplate>
+                <Label Text="{Binding Name}"
+                       BackgroundColor="#302210"
+                       FontSize="18"
+                       FontAttributes="Bold" />
+            </DataTemplate>
+        </CollectionView.GroupHeaderTemplate>
 	</CollectionView>
 </ContentPage>
