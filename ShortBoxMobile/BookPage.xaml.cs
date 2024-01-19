@@ -29,12 +29,12 @@ public partial class BookPage : ContentPage
 		{
 			TapArea.Left => this.ViewModel.PreviousPageCommand,
 			TapArea.Right => this.ViewModel.NextPageCommand,
-			_ => new RelayCommand(this.ToggleNavBar)
+			_ => new AsyncRelayCommand(this.ToggleNavBar)
 		};
 		command?.Execute(default);
     }
 
-	private void ToggleNavBar()
+	private async Task ToggleNavBar()
 	{
 		Shell.SetNavBarIsVisible(this, !Shell.GetNavBarIsVisible(this));
 		//if (Shell.GetNavBarIsVisible(this))
@@ -146,14 +146,24 @@ public sealed partial class BookPageViewModel : ObservableObject
 	private string _title;
 
 	[RelayCommand]
-	private void NextPage() => this.ChangePage(1);
+	private Task NextPage() => this.ChangePageAsync(1);
 
 	[RelayCommand]
-	private void PreviousPage() => this.ChangePage(-1);
+	private Task PreviousPage() => this.ChangePageAsync(-1);
 
-	private void ChangePage(int delta) 
+	private async Task ChangePageAsync(int delta) 
 	{ 
-		this.PageNumber = int.Max(0, int.Min(this.PageNumber + delta, this.Book.PageCount ?? 0 - 1));
+		var newPage = this.PageNumber + delta;
+		var pageLimit = (this.Book?.PageCount ?? 0) - 1;
+		switch (newPage)
+		{
+            case < 0 or _ when newPage > pageLimit:
+				await Shell.Current.GoToAsync("..");
+                break;
+			default:
+				this.PageNumber = newPage;
+				break;
+        };
 	}
 	
     protected override async void OnPropertyChanged(PropertyChangedEventArgs e)
