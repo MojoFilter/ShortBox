@@ -6,11 +6,13 @@
     <ContentPage.Resources>
         <local:BookCoverUriConverter x:Key="coverConverter" />
     </ContentPage.Resources>
-    <CollectionView x:Name="booksView" 
-					ItemsLayout="VerticalGrid, 4"
-					ItemsSource="{Binding BookGroups}"
-                    IsGrouped="True"
-                    SelectionMode="Single">
+    <RefreshView x:Name="booksView" 
+				 IsRefreshing="{Binding IsRefreshing}"
+                 Command="{Binding RefreshBooksCommand}">
+        <CollectionView ItemsLayout="VerticalGrid, 4"
+					    ItemsSource="{Binding BookGroups}"
+                        IsGrouped="True"
+                        SelectionMode="Single">
         <CollectionView.ItemTemplate>
             <DataTemplate>
                 <Grid Padding="10">
@@ -18,10 +20,10 @@
                         <TapGestureRecognizer Command="{Binding Source={x:Reference booksView}, Path=BindingContext.OpenBookCommand}"
                                               CommandParameter="{Binding}" />
                     </Grid.GestureRecognizers>
-					<Grid.RowDefinitions>
+                    <Grid.RowDefinitions>
                         <RowDefinition Height="250" />
                         <RowDefinition Height="35" />
-					</Grid.RowDefinitions>
+                    </Grid.RowDefinitions>
                     <Image>
                         <Image.Source>
                             <UriImageSource Uri="{Binding Converter={StaticResource coverConverter}}" />
@@ -30,9 +32,9 @@
                     <Label Grid.Row="1"
                            HorizontalTextAlignment="Center"
                            Text="{Binding Number}" />
-				</Grid>
-			</DataTemplate>
-		</CollectionView.ItemTemplate>
+                </Grid>
+            </DataTemplate>
+        </CollectionView.ItemTemplate>
         <CollectionView.GroupHeaderTemplate>
             <DataTemplate>
                 <Label Text="{Binding Name}"
@@ -41,5 +43,6 @@
                        FontAttributes="Bold" />
             </DataTemplate>
         </CollectionView.GroupHeaderTemplate>
-	</CollectionView>
+        </CollectionView>
+    </RefreshView>
 </ContentPage>

@@ -24,11 +24,11 @@ public sealed partial class SeriesPageViewModel : ObservableObject
         _client = client;
     }
 
-    protected override void OnPropertyChanged(PropertyChangedEventArgs e)
+    protected override async void OnPropertyChanged(PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(this.Series))
         {
-            this.LoadBooks();
+            await this.RefreshBooksAsync();
         }
         base.OnPropertyChanged(e);
     }
@@ -39,6 +39,9 @@ public sealed partial class SeriesPageViewModel : ObservableObject
     [ObservableProperty]
     private IEnumerable<BookGroup> _bookGroups;
 
+    [ObservableProperty]
+    private bool _isRefreshing;
+
     [RelayCommand]
     private Task OpenBookAsync(Book book) => book switch
     {
@@ -46,7 +49,21 @@ public sealed partial class SeriesPageViewModel : ObservableObject
         _ => Task.CompletedTask
     };
 
-    private async void LoadBooks()
+    [RelayCommand]
+    private async Task RefreshBooksAsync()
+    {
+        try
+        {
+            this.IsRefreshing = true;
+            await this.LoadBooksAsync();
+        }
+        finally
+        {
+            this.IsRefreshing = false;
+        }
+    }
+
+    private async Task LoadBooksAsync()
     {
         if (this.Series is not null)
         {

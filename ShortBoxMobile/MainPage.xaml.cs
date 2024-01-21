@@ -14,7 +14,7 @@ public partial class MainPage : ContentPage
     { 
         try
         {
-            await (this.BindingContext as MainPageViewModel).LoadBooksAsync();
+            await (this.BindingContext as MainPageViewModel).RefreshBooksAsync();
         }
         catch (Exception ex)
         {
@@ -30,7 +30,7 @@ public sealed partial class MainPageViewModel : ObservableObject
         _client = client;
     }
 
-    public async Task LoadBooksAsync()
+    private async Task LoadBooksAsync()
     {
         this.Books = await _client.GetAllBooksAsync();
     }
@@ -39,7 +39,7 @@ public sealed partial class MainPageViewModel : ObservableObject
     private Task OpenBook(Book book) => Shell.Current.GoToAsync($"{nameof(BookPage)}?bookId={book.Id}");
 
     [RelayCommand]
-    private async Task RefreshBooksAsync()
+    public async Task RefreshBooksAsync()
     {
         try
         {
