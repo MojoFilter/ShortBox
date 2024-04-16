@@ -15,8 +15,9 @@ internal class BookFactory : IBookFactory
 
     public async Task<Book> CreateFromInfoAsync(string fileName, IArchiveReader reader, CancellationToken cancellationToken)
     {
-        var book = new Book() 
+        var book = new Book()
         {
+            Id = BookId.Empty,
             FileName = Path.GetFileName(fileName),
             Added = DateTime.Now,
             Modified = DateTime.Now

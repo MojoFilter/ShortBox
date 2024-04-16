@@ -128,9 +128,9 @@ public partial class BookPage : ContentPage
 public sealed partial class BookPageViewModel : ObservableObject
 {
 
-    public BookPageViewModel(IShortBoxApiClient client)
+    public BookPageViewModel(IShortBoxApiClientFactory clientFactory)
     {
-        _client = client;
+        _clientFactory = clientFactory;
     }
 
     [ObservableProperty]
@@ -194,7 +194,8 @@ public sealed partial class BookPageViewModel : ObservableObject
 	{
 		if (this.Book is not null && this.Book.CurrentPage != this.PageNumber)
 		{
-			await _client.MarkPageAsync(this.BookId, this.PageNumber, default);
+			using var client = _clientFactory.CreateClient();
+			await client.MarkPageAsync(this.BookId, this.PageNumber, default);
 			this.Book.CurrentPage = this.PageNumber;
 		}
 	}
@@ -203,11 +204,12 @@ public sealed partial class BookPageViewModel : ObservableObject
 	{
 		try
 		{
-			this.Book = await _client.GetBookAsync(this.BookId);
+			using var client = _clientFactory.CreateClient();
+			this.Book = await client.GetBookAsync(this.BookId);
 			this.PageNumber = this.Book.CurrentPage;
 		} catch (Exception ex) { }
 	}
 
-	private readonly IShortBoxApiClient _client;
+	private readonly IShortBoxApiClientFactory _clientFactory;
 
 }

@@ -25,18 +25,19 @@ public partial class MainPage : ContentPage
 
 public sealed partial class MainPageViewModel : ObservableObject 
 {
-    public MainPageViewModel(IShortBoxApiClient client)
+    public MainPageViewModel(IShortBoxApiClientFactory clientFactory)
     {
-        _client = client;
+        _clientFactory = clientFactory;
     }
 
     private async Task LoadBooksAsync()
     {
-        this.Books = await _client.GetAllBooksAsync();
+        using var client = _clientFactory.CreateClient();
+        this.Books = await client.GetAllBooksAsync();
     }
 
     [RelayCommand]
-    private Task OpenBook(Book book) => Shell.Current.GoToAsync($"{nameof(BookPage)}?bookId={book.Id}");
+    private Task OpenBook(Book book) => Shell.Current.GoToAsync($"{nameof(BookPage)}?bookId={book.Id.Value}");
 
     [RelayCommand]
     public async Task RefreshBooksAsync()
@@ -58,5 +59,5 @@ public sealed partial class MainPageViewModel : ObservableObject
     [ObservableProperty]
     private bool _isRefreshing;
 
-    private readonly IShortBoxApiClient _client;
+    private readonly IShortBoxApiClientFactory _clientFactory;
 }

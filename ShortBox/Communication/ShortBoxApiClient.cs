@@ -1,6 +1,6 @@
 ﻿namespace ShortBox.Communication;
 
-public interface IShortBoxApiClient
+public interface IShortBoxApiClient : IDisposable
 {
     Task CombineSeriesNamesAsync(string[] seriesToCombine, string combinedName, CancellationToken cancellationToken);
     Task<IEnumerable<Book>> GetAllBooksAsync(CancellationToken cancellationToken = default);
@@ -14,12 +14,28 @@ public interface IShortBoxApiClient
     Task MarkPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken);
 }
 
+public interface IShortBoxApiClientFactory
+{
+    IShortBoxApiClient CreateClient();
+}
+
+internal sealed class ShortBoxApiClientFactory(IHttpClientFactory clientFactory, IShortBoxClientSettings settings) : IShortBoxApiClientFactory
+{
+
+    public IShortBoxApiClient CreateClient() => 
+        new ShortBoxApiClient(_clientFactory.CreateClient(nameof(ShortBoxApiClient)), _settings);
+
+    private readonly IHttpClientFactory _clientFactory = clientFactory;
+    private readonly IShortBoxClientSettings _settings = settings;
+}
+
 internal sealed class ShortBoxApiClient : IShortBoxApiClient
 {
 
-    public ShortBoxApiClient(HttpClient httpClient)
+    public ShortBoxApiClient(HttpClient httpClient, IShortBoxClientSettings settings)
     {
         _httpClient = httpClient;
+        _settingsSubscription = settings.BaseAddress.Subscribe(uri => _httpClient.BaseAddress = uri);
     }
 
     public Task<IEnumerable<Book>> GetAllBooksAsync(CancellationToken cancellationToken = default) => 
@@ -70,5 +86,8 @@ internal sealed class ShortBoxApiClient : IShortBoxApiClient
     {
     }
 
+    public void Dispose() => _settingsSubscription?.Dispose();
+
     private readonly HttpClient _httpClient;
+    private IDisposable _settingsSubscription;
 }

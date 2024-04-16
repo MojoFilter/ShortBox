@@ -19,9 +19,9 @@ public partial class SeriesPage : ContentPage
 
 public sealed partial class SeriesPageViewModel : ObservableObject 
 {
-    public SeriesPageViewModel(IShortBoxApiClient client)
+    public SeriesPageViewModel(IShortBoxApiClientFactory clientFactory)
     {
-        _client = client;
+        _clientFactory = clientFactory;
     }
 
     protected override async void OnPropertyChanged(PropertyChangedEventArgs e)
@@ -67,8 +67,9 @@ public sealed partial class SeriesPageViewModel : ObservableObject
     {
         if (this.Series is not null)
         {
-            var unreadTask = _client.GetIssuesAsync(this.Series.Name);
-            var readTask = _client.GetSeriesArchiveAsync(this.Series.Name);
+            using var client = _clientFactory.CreateClient();
+            var unreadTask = client.GetIssuesAsync(this.Series.Name);
+            var readTask = client.GetSeriesArchiveAsync(this.Series.Name);
             this.BookGroups = new BookGroup[]
             {
                 new("New", await unreadTask),
@@ -77,7 +78,7 @@ public sealed partial class SeriesPageViewModel : ObservableObject
         }
     }
 
-    private readonly IShortBoxApiClient _client;
+    private readonly IShortBoxApiClientFactory _clientFactory;
 }
 
 public class BookGroup : List<Book>

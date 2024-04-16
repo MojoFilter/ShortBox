@@ -16,7 +16,7 @@ namespace ShortBoxMobile
             Host = DeviceInfo.Platform switch
             {
                 //var p when p == DevicePlatform.Android && Debugger.IsAttached => "10.0.2.2",
-                var p when p == DevicePlatform.Android => "192.168.86.47",
+                var p when p == DevicePlatform.Android => "192.168.86.31",
                 _ => "jweeks-spector"
             };
 
@@ -38,6 +38,7 @@ namespace ShortBoxMobile
                     .AddTransient<BookPageViewModel>()
                     .AddTransient<MainPage>()
                     .AddTransient<MainPageViewModel>()
+                    .AddShortBoxClient()
                     .AddShortBoxCommunication(client =>
                     {
                         client.BaseAddress = new Uri($"http://{Host}:5000/");

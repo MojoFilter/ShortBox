@@ -1,3 +1,4 @@
+using MarvelApiClient;
 using Microsoft.EntityFrameworkCore;
 using ShortBox.Api;
 using ShortBox.Api.Data;
@@ -10,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddShortBoxApi(builder.Configuration);
+
+builder.Services.AddLogging();
 
 var app = builder.Build();
 
@@ -26,6 +29,7 @@ using (var scope = app.Services.CreateScope()) {
     }
 }
 
+
 app.MapGet("/series", (IBookStore store, CancellationToken ct) => store.GetAllSeriesAsync(ct))
     .WithName("GetAllSeries")
     .WithOpenApi();
@@ -40,21 +44,21 @@ app.MapGet("/books", (IBookStore store, CancellationToken ct) => store.GetRecent
    .WithName("GetBooks")
    .WithOpenApi();
 
-app.MapGet("/book/{bookId}", (int bookId, IBookStore store, CancellationToken ct) => store.GetBookAsync(bookId, ct))
+app.MapGet("/book/{bookId}", (BookId bookId, IBookStore store, CancellationToken ct) => store.GetBookAsync(bookId, ct))
     .WithName("GetBook")
     .WithOpenApi();
 
-app.MapGet("/book/{bookId}/cover", async (int bookId, int? height, IBookStore store, CancellationToken ct) =>
+app.MapGet("/book/{bookId}/cover", async (BookId bookId, int? height, IBookStore store, CancellationToken ct) =>
         Results.File(await store.GetBookCoverAsync(bookId, height, ct), "image/jpeg"))
    .WithName("GetBookCover")
    .WithOpenApi();
 
-app.MapPut("/book/{bookId}/mark/{pageNumber}", async (int bookId, int pageNumber, IBookStore store, CancellationToken ct) =>
+app.MapPut("/book/{bookId}/mark/{pageNumber}", async (BookId bookId, int pageNumber, IBookStore store, CancellationToken ct) =>
         await store.MarkPageAsync(bookId, pageNumber, ct))
    .WithName("MarkPage")
    .WithOpenApi();
 
-app.MapGet("/book/{bookId}/{pageNumber}", async (int bookId, int pageNumber, IBookStore store, CancellationToken ct) =>
+app.MapGet("/book/{bookId}/{pageNumber}", async (BookId bookId, int pageNumber, IBookStore store, CancellationToken ct) =>
         Results.File(await store.GetBookPageAsync(bookId, pageNumber, ct), "image/jpeg"));
 
 app.MapGet("series/{seriesName}", (string seriesName, IBookStore store, CancellationToken ct) =>
@@ -71,4 +75,14 @@ app.MapGet("/scan", (IComicFolderScanner scanner, CancellationToken ct) => scann
    .WithName("Scan")
    .WithOpenApi();
 
+app.MapGet("/pullList/update", UpdatePullListAsync)
+    .WithName("UpdatePullList")
+    .WithOpenApi();
+
 app.Run();
+
+async Task<IEnumerable<PullListEntry>> UpdatePullListAsync(IMarvelApiClient marvel, IBookStore store, CancellationToken ct)
+{
+    var recentComics = await marvel.GetReleasesAsync(ReleaseDateDescriptor.thisWeek, ct);
+    return await store.UpdatePullListAsync(recentComics, ct);
+}

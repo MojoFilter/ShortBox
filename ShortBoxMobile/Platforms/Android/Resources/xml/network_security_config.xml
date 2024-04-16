@@ -3,5 +3,7 @@
 	<domain-config cleartextTrafficPermitted="true">
 		<domain includeSubdomains="true">10.0.2.2</domain>
 		<domain includeSubdomains="true">192.168.86.47</domain>
+		<domain includeSubdomains="true">192.168.86.31</domain>
+		<domain includeSubdomains="true">jweeks-spector</domain>
 	</domain-config>
 </network-security-config>

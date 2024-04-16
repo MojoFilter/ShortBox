@@ -8,6 +8,7 @@ public static class ShortBoxCommunicationConfiguration
     {
         configureClient = configureClient ?? (client => client.BaseAddress = new Uri("http://api/"));
         services.AddHttpClient<IShortBoxApiClient, ShortBoxApiClient>(configureClient);
-        return services;
+        return services
+            .AddTransient<IShortBoxApiClientFactory, ShortBoxApiClientFactory>();
     }
 }

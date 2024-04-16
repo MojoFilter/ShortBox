@@ -3,7 +3,7 @@ using Android.Runtime;
 
 namespace ShortBoxMobile
 {
-    [Application]
+    [Application(UsesCleartextTraffic = true)]
     public class MainApplication : MauiApplication
     {
         public MainApplication(IntPtr handle, JniHandleOwnership ownership)

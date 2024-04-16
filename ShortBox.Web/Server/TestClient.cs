@@ -10,10 +10,15 @@ public class TestClient : IShortBoxApiClient
         throw new NotImplementedException();
     }
 
+    public void Dispose()
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<IEnumerable<Book>> GetAllBooksAsync(CancellationToken cancellationToken = default) => Task.FromResult(
         Enumerable.Range(0, 100).Select(i => new Book()
         {
-            Id = i,
+            Id = new(i),
             FileName = string.Empty,
             Added = DateTime.Now,
             Number = i.ToString(),
@@ -39,6 +44,11 @@ public class TestClient : IShortBoxApiClient
     }
 
     public Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }

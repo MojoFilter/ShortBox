@@ -54,7 +54,7 @@ public interface ICombineSeriesViewModel
 
 internal sealed partial class CombineSeriesViewModel : ObservableObject, ICombineSeriesViewModel
 {
-    public CombineSeriesViewModel(IShortBoxApiClient client)
+    public CombineSeriesViewModel(IShortBoxApiClientFactory clientFactory)
     {
         var whenSomeSelected =
             _selectedSeries.ObserveCollectionChanges()
@@ -70,13 +70,14 @@ internal sealed partial class CombineSeriesViewModel : ObservableObject, ICombin
             (someSelected, hasACombinedName) => someSelected && hasACombinedName)
             .Subscribe(_canSetCombinedName);
         
-        _client = client;
+        _clientFactory = clientFactory;
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         _seriesOptions.Clear();
-        var allSeries = await _client.GetAllSeriesAsync();
+        using var client = _clientFactory.CreateClient();
+        var allSeries = await client.GetAllSeriesAsync();
         var options = allSeries.Select(s => s.Name);
         _seriesOptions.AddRange(options);
     }
@@ -85,7 +86,8 @@ internal sealed partial class CombineSeriesViewModel : ObservableObject, ICombin
     public async Task SetCombinedNameAsync(CancellationToken cancellationToken)
     {
         var seriesToCombine = this.SelectedSeries.ToArray();
-        await _client.CombineSeriesNamesAsync(seriesToCombine, this.CombinedName, cancellationToken);
+        using var client = _clientFactory.CreateClient();
+        await client.CombineSeriesNamesAsync(seriesToCombine, this.CombinedName, cancellationToken);
     }
 
     public bool CanSetCombinedName => _canSetCombinedName.Value;
@@ -99,7 +101,7 @@ internal sealed partial class CombineSeriesViewModel : ObservableObject, ICombin
 
     private readonly ObservableCollection<string> _seriesOptions = new();
     private readonly ObservableCollection<string> _selectedSeries = new();
-    private readonly IShortBoxApiClient _client;
+    private readonly IShortBoxApiClientFactory _clientFactory;
     private readonly BehaviorSubject<bool> _canSetCombinedName = new BehaviorSubject<bool>(false);
 }
 

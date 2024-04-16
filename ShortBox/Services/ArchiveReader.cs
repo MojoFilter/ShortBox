@@ -6,7 +6,7 @@ namespace ShortBox.Services;
 public interface IArchiveReader
 {
     Task<Stream?> GetInfoStreamAsync(string fileName);
-    int GetPageCount(string fileName);
+    Task<int> GetPageCountAsync(string fileName);
     Task<Stream?> OpenCoverAsync(string fileName);
     Task<Stream?> OpenPageAsync(string fileName, int pageIndex);
 }
@@ -22,10 +22,10 @@ internal abstract class ArchiveReader : IArchiveReader
         return await this.CopyEntryAsync(infoEntry);
     }
 
-    public int GetPageCount(string fileName)
+    public Task<int> GetPageCountAsync(string fileName)
     {
         using var archive = this.OpenArchive(fileName);
-        return archive.FileEntries.Count() - 1;
+        return Task.FromResult(archive.FileEntries.Count() - 1);
     }
 
     public Task<Stream?> OpenCoverAsync(string fileName) => this.OpenPageAsync(fileName, 0);
@@ -78,14 +78,4 @@ internal class RarReader : ArchiveReader, IRarReader
     };
 }
 
-internal class ZipReader : ArchiveReader, IZipReader
-{
-    protected override IArchive OpenArchive(string fileName) => new Archive(fileName);
 
-    protected override Stream? OpenEntry(IArchiveFileEntry? entry) => entry switch
-    {
-        ArchiveEntry z => z.Open(),
-        null => default,
-        _ => throw new InvalidOperationException()
-    };
-}

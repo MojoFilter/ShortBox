@@ -60,7 +60,7 @@ internal class ComicFolderScanner : IComicFolderScanner
     private async Task<Book> InitBookAsync(string fileName, IArchiveReader reader, CancellationToken ct)
     {
         var book = await _bookFactory.CreateFromInfoAsync(fileName, reader, ct);
-        book.PageCount = book.PageCount ?? reader.GetPageCount(fileName);
+        book.PageCount = book.PageCount ?? await reader.GetPageCountAsync(fileName);
         await _store.CacheCoverAsync(book, () => reader.OpenCoverAsync(fileName), ct);
         return book;
     }

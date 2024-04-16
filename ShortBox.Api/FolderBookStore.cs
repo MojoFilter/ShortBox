@@ -1,6 +1,7 @@
-﻿using System.ComponentModel;
+﻿using MarvelApiClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+
 using ShortBox.Api.Data;
 using ShortBox.Services;
 
@@ -9,14 +10,15 @@ namespace ShortBox.Api;
 
 public interface IBookStore {
     Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken);
-    Task<Book> GetBookAsync(int bookId, CancellationToken ct);
-    Task<byte[]> GetBookCoverAsync(int bookId, int? height, CancellationToken ct);
-    Task<byte[]> GetBookPageAsync(int bookId, int pageNumber, CancellationToken ct);
+    Task<Book> GetBookAsync(BookId bookId, CancellationToken ct);
+    Task<byte[]> GetBookCoverAsync(BookId bookId, int? height, CancellationToken ct);
+    Task<byte[]> GetBookPageAsync(BookId bookId, int pageNumber, CancellationToken ct);
     Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken ct);
     Task<List<Book>> GetRecentBooksAsync(CancellationToken ct);
     Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken ct);
     Task<byte[]> GetSeriesCoverAsync(string seriesName, int? height, CancellationToken cancellationToken);
-    Task MarkPageAsync(int bookId, int pageNumber, CancellationToken ct);    
+    Task MarkPageAsync(BookId bookId, int pageNumber, CancellationToken ct);
+    Task<IEnumerable<PullListEntry>> UpdatePullListAsync(IEnumerable<Comic> recentComics, CancellationToken ct);
 }
 
 internal class FolderBookStoreOptions { 
@@ -79,9 +81,9 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
         await _context.SaveChangesAsync();
     }
 
-    public Task<Book> GetBookAsync(int bookId, CancellationToken ct) => this.GetBookByIdAsync(bookId, ct);
+    public Task<Book> GetBookAsync(BookId bookId, CancellationToken ct) => this.GetBookByIdAsync(bookId, ct);
 
-    public async Task<byte[]> GetBookCoverAsync(int bookId, int? height, CancellationToken ct)
+    public async Task<byte[]> GetBookCoverAsync(BookId bookId, int? height, CancellationToken ct)
     {
         var book = await this.GetBookByIdAsync(bookId, ct);
         return await this.GetCoverFileAsync(book, height, ct);
@@ -99,7 +101,7 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
             .OrderBy(b=>b.Number)
             .ToListAsync(ct)).AsEnumerable();
 
-    private async Task<Book> GetBookByIdAsync(int bookId, CancellationToken ct) =>
+    private async Task<Book> GetBookByIdAsync(BookId bookId, CancellationToken ct) =>
         await _context.Books.FirstOrDefaultAsync(b => b.Id == bookId, ct) 
             ?? throw new KeyNotFoundException($"Book not found with ID {bookId}");
 
@@ -111,7 +113,7 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
         return reader.ReadBytes((int)image.Length);
     }
 
-    public async Task<byte[]> GetBookPageAsync(int bookId, int pageNumber, CancellationToken ct) =>
+    public async Task<byte[]> GetBookPageAsync(BookId bookId, int pageNumber, CancellationToken ct) =>
         await _context.Books.FindAsync(bookId) switch
         {
             Book book => await _reader.GetBookPageAsync(ArchivePath(book), pageNumber, ct).ToByteArrayAsync(ct),
@@ -121,6 +123,35 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
     public Task<List<Book>> GetRecentBooksAsync(CancellationToken ct) =>
         _context.Books.WhereUnread()
                       .OrderByDescending(b => b.Modified).ToListAsync(ct);
+
+    public async Task<IEnumerable<PullListEntry>> UpdatePullListAsync(IEnumerable<Comic> recentComics, CancellationToken ct)
+    {
+        foreach (var comic in recentComics)
+        {
+            var keyValues = new object?[] { new PullListEntryId(comic.Id) };
+            if (await _context.PullList.FindAsync(keyValues, ct).ConfigureAwait(false) is null)
+            {
+                await _context.PullList.AddAsync(new()
+                {
+                    Id = new(comic.Id),
+                    Description = comic.Description,
+                    IssueNumber = comic.IssueNumber,
+                    Title = comic.Title,
+                    ThumbnailUri = comic.ThumbnailUri
+                }).ConfigureAwait(false);
+            }
+        }
+
+        var pendingInserts = _context.ChangeTracker
+                                     .Entries()
+                                     .Where(e => e.State == EntityState.Added)
+                                     .Select(e => e.Entity)
+                                     .OfType<PullListEntry>()
+                                     .ToList();
+
+        await _context.SaveChangesAsync(ct).ConfigureAwait(false);
+        return pendingInserts;
+    }
         
     private static readonly DateTime tooOld = new(2000, 1, 1);
 
@@ -139,7 +170,7 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
 
     private string CoverFilePath(Book book) => Path.Combine(_bookFolder, "covers", $"{book.FileName}.jpg");
 
-    public Task MarkPageAsync(int bookId, int pageNumber, CancellationToken ct) =>
+    public Task MarkPageAsync(BookId bookId, int pageNumber, CancellationToken ct) =>
         _context.Books
                 .Where(b => b.Id == bookId)
                 .ExecuteUpdateAsync(s =>
@@ -151,7 +182,6 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
     private readonly string _bookFolder;
     private readonly IComicFileReader _reader;
     private readonly IImageBusiness _imageBusiness;
-    //private IComicFolderScanner _scanner;
 }
 
 internal static class EfExtensions

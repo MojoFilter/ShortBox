@@ -11,6 +11,6 @@ public static class ShortBoxApiConfiguration
         services.AddDbContext<ShortBoxContext>(options => options.UseSqlServer(configuration.GetConnectionString("ShortBoxContext")))
                 .AddTransient<IBookStore, FolderBookStore>()
                 .AddTransient<IFolderBookStore, FolderBookStore>()
-                .AddShortBoxServices()
+                .AddShortBoxServices(configuration.GetSection("MarvelApi"))
                 .Configure<FolderBookStoreOptions>(configuration.GetSection("store"));
 }
