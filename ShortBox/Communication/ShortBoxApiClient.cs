@@ -1,4 +1,6 @@
-﻿namespace ShortBox.Communication;
+﻿using MarvelApiClient;
+
+namespace ShortBox.Communication;
 
 public interface IShortBoxApiClient : IDisposable
 {
@@ -9,9 +11,11 @@ public interface IShortBoxApiClient : IDisposable
     Task<Stream> GetBookCoverAsync(int bookId, int? height, CancellationToken cancellationToken);
     Task<Stream> GetBookPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken);
     Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken cancellationToken = default);
+    Task<IEnumerable<PullListEntry>> GetPullListAsync(CancellationToken cancellationToken);
     Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken cancellationToken = default);
     Task<Stream> GetSeriesCoverAsync(string seriesName, int? height, CancellationToken cancellationToken = default);
     Task MarkPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken);
+    Task<IEnumerable<PullListEntry>> UpdatePullListAsync(CancellationToken cancellationToken);
 }
 
 public interface IShortBoxApiClientFactory
@@ -66,6 +70,12 @@ internal sealed class ShortBoxApiClient : IShortBoxApiClient
 
     public Task MarkPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken) =>
         _httpClient.PutAsync($"book/{bookId}/mark/{pageNumber}", default, cancellationToken);
+
+    public Task<IEnumerable<PullListEntry>> GetPullListAsync(CancellationToken cancellationToken) =>
+        GetSomeAsync<PullListEntry>("pullList", cancellationToken);
+
+    public Task<IEnumerable<PullListEntry>> UpdatePullListAsync(CancellationToken cancellationToken) =>
+        GetSomeAsync<PullListEntry>("pullList/update", cancellationToken);
 
     private async Task<IEnumerable<T>> GetSomeAsync<T>(string uri, CancellationToken cancellationToken)
     {

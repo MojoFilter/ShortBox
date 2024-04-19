@@ -79,6 +79,10 @@ app.MapGet("/pullList/update", UpdatePullListAsync)
     .WithName("UpdatePullList")
     .WithOpenApi();
 
+app.MapGet("/pullList", (IBookStore store, CancellationToken ct) => store.GetPullListAsync(ct))
+    .WithName("GetPullList")
+    .WithOpenApi();
+
 app.Run();
 
 async Task<IEnumerable<PullListEntry>> UpdatePullListAsync(IMarvelApiClient marvel, IBookStore store, CancellationToken ct)

@@ -23,6 +23,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ShortBoxDesktop", "ShortBox
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShorboxSandbox", "ShorboxSandbox\ShorboxSandbox.csproj", "{6FD8F835-E1B1-49EB-AE5A-254CA6A0DEC8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShortBoxPullListManager", "ShortBoxPullListManager\ShortBoxPullListManager.csproj", "{167A9E01-9092-48CB-8C45-64AE0FA57F88}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +73,10 @@ Global
 		{6FD8F835-E1B1-49EB-AE5A-254CA6A0DEC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6FD8F835-E1B1-49EB-AE5A-254CA6A0DEC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6FD8F835-E1B1-49EB-AE5A-254CA6A0DEC8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{167A9E01-9092-48CB-8C45-64AE0FA57F88}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{167A9E01-9092-48CB-8C45-64AE0FA57F88}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{167A9E01-9092-48CB-8C45-64AE0FA57F88}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{167A9E01-9092-48CB-8C45-64AE0FA57F88}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

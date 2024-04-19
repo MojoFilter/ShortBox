@@ -14,6 +14,7 @@ public interface IBookStore {
     Task<byte[]> GetBookCoverAsync(BookId bookId, int? height, CancellationToken ct);
     Task<byte[]> GetBookPageAsync(BookId bookId, int pageNumber, CancellationToken ct);
     Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken ct);
+    Task<IEnumerable<PullListEntry>> GetPullListAsync(CancellationToken ct);
     Task<List<Book>> GetRecentBooksAsync(CancellationToken ct);
     Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken ct);
     Task<byte[]> GetSeriesCoverAsync(string seriesName, int? height, CancellationToken cancellationToken);
@@ -152,6 +153,12 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
         await _context.SaveChangesAsync(ct).ConfigureAwait(false);
         return pendingInserts;
     }
+
+    public async Task<IEnumerable<PullListEntry>> GetPullListAsync(CancellationToken ct) =>
+        await _context.PullList
+        .Where(e => e.BookId == null)
+        .ToListAsync(ct)
+        .ConfigureAwait(false);
         
     private static readonly DateTime tooOld = new(2000, 1, 1);
 

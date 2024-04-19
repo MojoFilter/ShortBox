@@ -1,4 +1,5 @@
-﻿using ShortBox.Communication;
+﻿using Microsoft.Extensions.Configuration;
+using ShortBox.Communication;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -10,5 +11,13 @@ public static class ShortBoxCommunicationConfiguration
         services.AddHttpClient<IShortBoxApiClient, ShortBoxApiClient>(configureClient);
         return services
             .AddTransient<IShortBoxApiClientFactory, ShortBoxApiClientFactory>();
+    }
+
+    public static IServiceCollection AddShortBoxCommunication(this IServiceCollection service, IConfiguration configuration)
+    {
+        return service.AddShortBoxCommunication(client =>
+        {
+            client.BaseAddress = new Uri(configuration["ShortBoxServiceUri"]!);
+        });
     }
 }

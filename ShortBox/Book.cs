@@ -22,7 +22,7 @@ public sealed record BookId(int Value) : IntId(Value)
 
 public class Book {
     
-    public required BookId Id { get; set; }
+    public BookId? Id { get; set; }
     public DateTime Added { get; set; } = DateTime.Now;
     public DateTime Modified { get; set; } = DateTime.Now;
     public required string FileName { get; set; }

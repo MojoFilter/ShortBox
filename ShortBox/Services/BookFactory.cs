@@ -17,7 +17,6 @@ internal class BookFactory : IBookFactory
     {
         var book = new Book()
         {
-            Id = BookId.Empty,
             FileName = Path.GetFileName(fileName),
             Added = DateTime.Now,
             Modified = DateTime.Now

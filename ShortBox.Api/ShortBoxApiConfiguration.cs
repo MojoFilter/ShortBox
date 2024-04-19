@@ -8,7 +8,9 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static class ShortBoxApiConfiguration
 {
     public static IServiceCollection AddShortBoxApi(this IServiceCollection services, IConfiguration configuration) =>
-        services.AddDbContext<ShortBoxContext>(options => options.UseSqlServer(configuration.GetConnectionString("ShortBoxContext")))
+        services.AddDbContext<ShortBoxContext>(options => 
+                    options.UseSqlServer(configuration.GetConnectionString("ShortBoxContext"))
+                           .EnableSensitiveDataLogging())
                 .AddTransient<IBookStore, FolderBookStore>()
                 .AddTransient<IFolderBookStore, FolderBookStore>()
                 .AddShortBoxServices(configuration.GetSection("MarvelApi"))

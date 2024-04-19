@@ -22,6 +22,13 @@ public class ShortBoxContext : DbContext {
             .HaveConversion<IntIdConverter<PullListEntryId>>();
     }
 
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Book>()
+            .Property(book => book.Id)
+            .UseIdentityColumn();
+    }
+
     private class IntIdConverter<T> : ValueConverter<T, int> where T : IntId 
     {
         public IntIdConverter() : base(
