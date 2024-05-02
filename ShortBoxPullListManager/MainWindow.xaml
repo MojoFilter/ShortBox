@@ -12,7 +12,39 @@
             <Button DockPanel.Dock="Top"
                     Content="Update and Refresh"
                     Command="{Binding UpdateAndRefreshPullListCommand}" />
-            <DataGrid ItemsSource="{Binding PullList}" AutoGenerateColumns="True" />
+            <!--<DataGrid ItemsSource="{Binding PullList}" AutoGenerateColumns="True" />-->
+            <ListBox ItemsSource="{Binding PullList}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="{Binding Title}"
+                                       FontWeight="Bold" />
+                            <TextBlock Text="{Binding IssueNumber}"
+                                       Grid.Row="1"/>
+                            <Image Grid.Row="2"
+                                   Source="{Binding ThumbnailUri}"
+                                   Width="250"
+                                   Stretch="UniformToFill"/>
+                            <TextBlock Grid.Column="1"
+                                       Grid.Row="2"
+                                       Grid.RowSpan="1"
+                                       Width="350"
+                                       Margin="6"
+                                       Text="{Binding Description}"
+                                       TextWrapping="Wrap"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
         </DockPanel>
     </Grid>
 </Window>

@@ -45,7 +45,7 @@ public sealed partial class SeriesPageViewModel : ObservableObject
     [RelayCommand]
     private Task OpenBookAsync(Book book) => book switch
     {
-        Book => Shell.Current.GoToAsync($"{nameof(BookPage)}?bookId={book.Id}"),
+        Book => Shell.Current.GoToAsync($"{nameof(BookPage)}?bookId={book.Id.Value}"),
         _ => Task.CompletedTask
     };
 

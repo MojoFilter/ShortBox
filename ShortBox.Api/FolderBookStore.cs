@@ -42,9 +42,10 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
 
     public async Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken) =>
         (await _context.Books
-                .WhereUnread()
+                //.WhereUnread() Just Go ahead and get them all
                 .GroupBy(b => b.Series)
-                .OrderByDescending(g => g.Select(b=>b.Modified).Max())
+                //.OrderByDescending(g => g.Select(b=>b.Modified).Max())
+                .OrderBy(s => s.Key)
                 .Select(group => new Series(group.Key ?? string.Empty))
                 .ToListAsync()).AsEnumerable();
 
