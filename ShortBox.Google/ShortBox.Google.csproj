@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Apis.Drive.v3" Version="1.69.0.3699" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ShortBox\ShortBox.csproj" />
+  </ItemGroup>
+
+</Project>

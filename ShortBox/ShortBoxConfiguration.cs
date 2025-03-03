@@ -9,7 +9,7 @@ public static class ShortBoxConfiguration
     public static IServiceCollection AddShortBoxClient(this IServiceCollection services) =>
         services.AddSingleton<IShortBoxClientSettings, ShortBoxClientSettings>();
 
-    public static IServiceCollection AddShortBoxServices(this IServiceCollection services, IConfiguration marvelApiConfiguration) =>
+    public static IServiceCollection AddShortBoxServices(this IServiceCollection services) => //, IConfiguration marvelApiConfiguration) =>
         services.AddTransient<IComicFileNameParser, ComicFileNameParser>()
                 .AddTransient<IComicInfoReader, ComicInfoReader>()
                 .AddTransient<IRarReader, RarReader>()
@@ -18,6 +18,6 @@ public static class ShortBoxConfiguration
                 .AddTransient<IComicFolderScanner, ComicFolderScanner>()
                 .AddTransient<IComicFileReader, ComicFileReader>()
                 .AddTransient<IArchiveReaderFactory, ArchiveReaderFactory>()
-                .AddTransient<IImageBusiness, ImageBusiness>()
-                .AddMarvelApi(marvelApiConfiguration);
+                .AddTransient<IImageBusiness, ImageBusiness>();
+                //.AddMarvelApi(marvelApiConfiguration);
 }

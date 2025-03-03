@@ -33,6 +33,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShortBox.DataAccess", "Shor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShortBoxFunctions", "azure\ShortBoxFunctions\ShortBoxFunctions.csproj", "{B91292E5-6651-B21E-BFB9-6C2913B9A585}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShortBox.Google", "ShortBox.Google\ShortBox.Google.csproj", "{242C1680-BA98-444C-A08E-C7016BEC0013}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,10 @@ Global
 		{B91292E5-6651-B21E-BFB9-6C2913B9A585}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B91292E5-6651-B21E-BFB9-6C2913B9A585}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B91292E5-6651-B21E-BFB9-6C2913B9A585}.Release|Any CPU.Build.0 = Release|Any CPU
+		{242C1680-BA98-444C-A08E-C7016BEC0013}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{242C1680-BA98-444C-A08E-C7016BEC0013}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{242C1680-BA98-444C-A08E-C7016BEC0013}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{242C1680-BA98-444C-A08E-C7016BEC0013}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
