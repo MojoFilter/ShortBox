@@ -1,0 +1,28 @@
+﻿@page "/books"
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using ShortBox.Api.Data
+@using ShortBox.Communication
+
+@inject IShortBoxReaderClient client
+
+<h3>Books</h3>
+
+<QuickGrid Items="@books">
+    <TemplateColumn Title="Id">
+        <div>
+            <a href="/cover/@(context.Id.Value)">@(context.Id.Value)</a>
+        </div>
+    </TemplateColumn>
+    <PropertyColumn Property="@(b => b.Series)" />
+    <PropertyColumn Property="@(b => b.Number)" />
+    <PropertyColumn Property="@(b => b.CurrentPage)" />
+</QuickGrid>
+@code {
+    IQueryable<Book> books = Enumerable.Empty<Book>().AsQueryable();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await client.GetAllBooksAsync();
+        books = result.AsQueryable();
+    }
+}

@@ -1,0 +1,46 @@
+﻿@page "/cover/{BookIdValue:int}"
+@using ShortBox.Communication
+
+@inject IShortBoxReaderClient client
+
+@if (!string.IsNullOrWhiteSpace(ImageBase64))
+{
+    <img src="@ImageBase64" />
+}
+else if (Error?.Message is var msg)
+{
+    <pre style="color: red">@msg</pre>
+}
+else
+{
+    <p>Loading Cover...</p>
+}
+
+@code {
+    [Parameter]
+    public int? BookIdValue { get; set; }
+
+    private string? ImageBase64 { get; set; }
+
+    private Exception? Error { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (BookIdValue.HasValue) 
+            {
+                var stream = await client.GetBookCoverAsync(BookIdValue.Value, null, CancellationToken.None).ConfigureAwait(false);
+                var data = await stream.ToBase64Async().ConfigureAwait(false);
+                ImageBase64 = $"data:image/png;base64,{data}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            Error = ex;
+        }
+    }
+
+
+}

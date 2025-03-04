@@ -1,15 +1,19 @@
 ﻿namespace ShortBox.Communication;
 
-public interface IShortBoxApiClient : IDisposable
+public interface IShortBoxReaderClient
 {
-    Task CombineSeriesNamesAsync(string[] seriesToCombine, string combinedName, CancellationToken cancellationToken);
     Task<IEnumerable<Book>> GetAllBooksAsync(CancellationToken cancellationToken = default);
     Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken = default);
     Task<Book?> GetBookAsync(int bookId, CancellationToken cancellationToken = default);
-    Task<Stream> GetBookCoverAsync(int bookId, int? height, CancellationToken cancellationToken);
-    Task<Stream> GetBookPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken);
     Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken cancellationToken = default);
     Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken cancellationToken = default);
+    Task<Stream> GetBookCoverAsync(int bookId, int? height, CancellationToken cancellationToken);
+    Task<Stream> GetBookPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken);
+}
+
+public interface IShortBoxApiClient : IShortBoxReaderClient, IDisposable
+{
+    Task CombineSeriesNamesAsync(string[] seriesToCombine, string combinedName, CancellationToken cancellationToken);
     Task<Stream> GetSeriesCoverAsync(string seriesName, int? height, CancellationToken cancellationToken = default);
     Task MarkPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken);
 }
@@ -75,15 +79,16 @@ internal sealed class ShortBoxApiClient : IShortBoxApiClient
             var result = await _httpClient.GetFromJsonAsync<IEnumerable<T>>(uri, cancellationToken);
             return result ?? getDefault();
         }
-        catch (Exception ex) 
+        catch (Exception) 
         {
             //Debug.WriteLine(ex.Message);
             return getDefault();
         }
     }
 
-    public async Task CombineSeriesNamesAsync(string[] seriesToCombine, string combinedName, CancellationToken cancellationToken)
+    public Task CombineSeriesNamesAsync(string[] seriesToCombine, string combinedName, CancellationToken cancellationToken)
     {
+        throw new NotImplementedException();
     }
 
     public void Dispose() => _settingsSubscription?.Dispose();

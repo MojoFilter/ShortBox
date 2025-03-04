@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-using ShortBox.Google;
-using ShortBox.Services;
+﻿using ShortBox.Google;
 
 namespace Microsoft.Extensions.DependencyInjection;
 

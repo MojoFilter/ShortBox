@@ -1,10 +1,4 @@
-﻿using Google.Apis.Auth.OAuth2;
-using Google.Apis.Drive.v3;
-using Microsoft.Extensions.Options;
-using ShortBox.Api.Data;
-using ShortBox.Services;
-
-namespace ShortBox.Google;
+﻿namespace ShortBox.Google;
 
 public class BookCoverFileBusiness(
     IOptions<GoogleOptions> options,
@@ -27,7 +21,8 @@ public class BookCoverFileBusiness(
         {
             var fileId = await FindFileIdAsync(service, $"{fileName}.jpg", ct).ConfigureAwait(false);
             return await DownloadFileAsync(service, fileId, ct).ConfigureAwait(false);
-        } catch (Exception ex)
+        } 
+        catch (Exception)
         {
             throw;
         }
@@ -36,7 +31,7 @@ public class BookCoverFileBusiness(
     private async Task<string> FindFileIdAsync(DriveService service, string fileName, CancellationToken ct)
     {
         var request = service.Files.List();
-        request.Q = $"'{_opt.CoversFolderId}' in parents and name contains 'Red Hulk 001'"; //= '{fileName}'";
+        request.Q = $"'{_opt.CoversFolderId}' in parents and name = '{fileName}'";
         request.Fields = "files(id)";
         var response = await request.ExecuteAsync(ct);
         return response.Files.FirstOrDefault()?.Id ?? throw new FileNotFoundException($"{fileName} not found");

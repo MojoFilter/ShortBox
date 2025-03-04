@@ -1,5 +1,8 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddAzureFunctionsProject<Projects.ShortBoxFunctions>("shortboxfunctions");
+var functions = builder.AddAzureFunctionsProject<Projects.ShortBoxFunctions>("shortboxfunctions");
+
+builder.AddProject<Projects.ShortBoxAzureClientTesting>("shortboxazureclienttesting")
+       .WithReference(functions);
 
 builder.Build().Run();

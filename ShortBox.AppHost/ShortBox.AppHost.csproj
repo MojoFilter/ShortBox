@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\azure\ShortBoxAzureClientTesting\ShortBoxAzureClientTesting.csproj" />
     <ProjectReference Include="..\azure\ShortBoxFunctions\ShortBoxFunctions.csproj" />
   </ItemGroup>
 
