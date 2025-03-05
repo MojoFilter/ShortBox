@@ -1,0 +1,22 @@
+﻿@page "/allseries"
+@using ShortBox.Api.Data
+@using ShortBox.Communication
+
+@inject IShortBoxReaderClient client
+<h3>All Series</h3>
+
+<ul>
+    @foreach (var s in series)
+    {
+        <li>@s.Name</li>
+    }
+</ul>
+
+@code {
+    IEnumerable<Series> series = Enumerable.Empty<Series>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        this.series = await client.GetAllSeriesAsync().ConfigureAwait(false);
+    }
+}

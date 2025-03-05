@@ -7,6 +7,7 @@ public interface IBookStore
 {
     Task<byte[]> GetBookCoverAsync(BookId bookId, int? height, CancellationToken ct);
     IAsyncEnumerable<Book> GetRecentBooksAsync(CancellationToken cancellationToken);
+    Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken);
 }
 
 internal class BookStore(
@@ -33,6 +34,18 @@ internal class BookStore(
         using var context = await this.GetContextAsync(ct).ConfigureAwait(false);
         var book = await this.GetBookByIdAsync(bookId, context, ct).ConfigureAwait(false); ;
         return await this.GetCoverFileAsync(book, height, ct);
+    }
+
+    public async Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken)
+    {
+        using var context = await this.GetContextAsync(cancellationToken).ConfigureAwait(false);
+        return await context
+            .Books
+            .WhereUnread()
+            .GroupBy(b => b.Series)
+            .OrderByDescending(g => g.Select(b => b.Modified).Max())
+            .Select(group => new Series(group.Key ?? string.Empty))
+            .ToListAsync(cancellationToken);
     }
 
     private Task<ShortBoxContext> GetContextAsync(CancellationToken cancellationToken) =>

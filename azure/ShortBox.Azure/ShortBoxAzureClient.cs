@@ -2,13 +2,11 @@
 
 public class ShortBoxAzureClient(IHttpClientFactory clientFactory) : IShortBoxReaderClient
 {
-    public async Task<IEnumerable<Book>> GetAllBooksAsync(CancellationToken cancellationToken = default) =>
-        await GetClient().GetSomeAsync<Book>("api/Books", cancellationToken).ConfigureAwait(false);    
+    public Task<IEnumerable<Book>> GetAllBooksAsync(CancellationToken cancellationToken = default) =>
+        GetClient().GetSomeAsync<Book>("api/Books", cancellationToken);
 
-    public Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken = default)
-    {
-        throw new NotImplementedException();
-    }
+    public Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken = default) =>
+        GetClient().GetSomeAsync<Series>("api/series", cancellationToken);
 
     public Task<Book?> GetBookAsync(int bookId, CancellationToken cancellationToken = default)
     {
