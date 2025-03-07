@@ -18,7 +18,11 @@
             <a href="/cover/@(context.Id.Value)">🖻</a>
         </div>
     </TemplateColumn>
-    <PropertyColumn Property="@(b => b.Series)" />
+    <TemplateColumn Title="Series">
+        <div>
+            <a href="/series/@(context.Series)">@(context.Series)</a>
+        </div>
+    </TemplateColumn>
     <PropertyColumn Property="@(b => b.Number)" />
     <PropertyColumn Property="@(b => b.CurrentPage)" />
 </QuickGrid>

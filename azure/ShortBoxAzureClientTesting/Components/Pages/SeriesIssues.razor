@@ -1,0 +1,67 @@
+﻿@page "/series/{seriesName}"
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using ShortBox.Api.Data
+@using ShortBox.Communication
+
+@inject IShortBoxReaderClient client
+
+<h2>@SeriesName</h2>
+
+<h3>Issues</h3>
+<QuickGrid Items="@books">
+    <TemplateColumn Title="Id">
+        <div>
+            <a href="/bookdetail/@(context.Id.Value)">@(context.Id.Value)</a>
+        </div>
+    </TemplateColumn>
+    <TemplateColumn Title="Cover">
+        <div>
+            <a href="/cover/@(context.Id.Value)">🖻</a>
+        </div>
+    </TemplateColumn>
+    <PropertyColumn Property="@(b => b.Number)" />
+    <PropertyColumn Property="@(b => b.CurrentPage)" />
+</QuickGrid>
+
+<hr />
+<h3>Archive</h3>
+<QuickGrid Items="@books">
+    <TemplateColumn Title="Id">
+        <div>
+            <a href="/bookdetail/@(context.Id.Value)">@(context.Id.Value)</a>
+        </div>
+    </TemplateColumn>
+    <TemplateColumn Title="Cover">
+        <div>
+            <a href="/cover/@(context.Id.Value)">🖻</a>
+        </div>
+    </TemplateColumn>
+    <PropertyColumn Property="@(b => b.Number)" />
+    <PropertyColumn Property="@(b => b.CurrentPage)" />
+</QuickGrid>
+
+@code {
+    [Parameter]
+    public required string SeriesName { get; set; }
+
+    IQueryable<Book> books = Enumerable.Empty<Book>().AsQueryable();
+    IQueryable<Book> archive = Enumerable.Empty<Book>().AsQueryable();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var cts = new CancellationTokenSource();
+        var token = cts.Token;
+        await Task.WhenAll(GetIssuesAsync(token), GetArchiveAsync(token)).ConfigureAwait(false);
+    }
+
+    private async Task GetIssuesAsync(CancellationToken cancellationToken) {
+        var result = await client.GetIssuesAsync(SeriesName, cancellationToken).ConfigureAwait(false);
+        books = result.AsQueryable();
+    }
+
+    private async Task GetArchiveAsync(CancellationToken cancellationToken)
+    {
+        var result = await client.GetSeriesArchiveAsync(SeriesName, cancellationToken).ConfigureAwait(false);
+        archive = result.AsQueryable();
+    }
+}
