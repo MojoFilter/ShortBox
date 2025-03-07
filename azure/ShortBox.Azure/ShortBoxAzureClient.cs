@@ -8,9 +8,15 @@ public class ShortBoxAzureClient(IHttpClientFactory clientFactory) : IShortBoxRe
     public Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken = default) =>
         GetClient().GetSomeAsync<Series>("api/series", cancellationToken);
 
-    public Task<Book?> GetBookAsync(int bookId, CancellationToken cancellationToken = default)
+    public async Task<Book?> GetBookAsync(int bookId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var response = await GetClient().GetAsync($"api/book/{bookId}", cancellationToken).ConfigureAwait(false);
+        return response.StatusCode switch
+        {
+            HttpStatusCode.OK => await response.Content.ReadFromJsonAsync<Book>(),
+            HttpStatusCode.NotFound => null,
+            _ => throw new HttpRequestException($"Failed to get book {bookId} with status {response.StatusCode}")
+        };
     }
 
     public Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken cancellationToken = default)

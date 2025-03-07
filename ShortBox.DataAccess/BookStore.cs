@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using ShortBox.Services;
+﻿using ShortBox.Services;
 
 namespace ShortBox.DataAccess;
 
@@ -8,6 +7,9 @@ public interface IBookStore
     Task<byte[]> GetBookCoverAsync(BookId bookId, int? height, CancellationToken ct);
     IAsyncEnumerable<Book> GetRecentBooksAsync(CancellationToken cancellationToken);
     Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken);
+    Task<Book> GetBookAsync(BookId bookId, CancellationToken ct);
+    Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken ct);
+    Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken ct);
 }
 
 internal class BookStore(
@@ -47,6 +49,31 @@ internal class BookStore(
             .Select(group => new Series(group.Key ?? string.Empty))
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<Book> GetBookAsync(BookId bookId, CancellationToken ct)
+    {
+        using var context = await this.GetContextAsync(ct).ConfigureAwait(false);
+        return (await context.Books.FindAsync(new BookId(bookId.Value)).ConfigureAwait(false))
+            ?? throw new KeyNotFoundException($"Book not found with ID {bookId}");
+    }
+
+    public Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken ct) => this.GetIssuesAsync(seriesName, true, ct);
+
+
+    public Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken ct) => this.GetIssuesAsync(seriesName, false, ct);
+
+    private async Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, bool unread, CancellationToken ct)
+    { 
+        using var context = await this.GetContextAsync(ct).ConfigureAwait(false);
+        var books = await context.Books
+            .Where(b => string.Equals(b.Series, seriesName))
+            .WhereUnread(unread)
+            .OrderBy(b => b.Number)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        return books.AsEnumerable();
+    }
+
 
     private Task<ShortBoxContext> GetContextAsync(CancellationToken cancellationToken) =>
         _contextFactory.CreateDbContextAsync(cancellationToken);

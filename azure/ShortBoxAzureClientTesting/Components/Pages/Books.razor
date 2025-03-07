@@ -10,7 +10,12 @@
 <QuickGrid Items="@books">
     <TemplateColumn Title="Id">
         <div>
-            <a href="/cover/@(context.Id.Value)">@(context.Id.Value)</a>
+            <a href="/bookdetail/@(context.Id.Value)">@(context.Id.Value)</a>
+        </div>
+    </TemplateColumn>
+    <TemplateColumn Title="Cover">
+        <div>
+            <a href="/cover/@(context.Id.Value)">🖻</a>
         </div>
     </TemplateColumn>
     <PropertyColumn Property="@(b => b.Series)" />

@@ -1,0 +1,49 @@
+﻿@page "/bookdetail/{BookIdValue:int}"
+@using ShortBox.Api.Data
+@using ShortBox.Communication
+
+@inject IShortBoxReaderClient client
+
+<h3>@Book?.Series @Book?.Number</h3>
+
+<table>
+    <tr>
+        <th>Id</th>
+        <td>@Book?.Id</td>
+    </tr>
+    <tr>
+        <th>Added</th>
+        <td>@Book?.Added</td>
+    </tr>
+    <tr>
+        <th>Modified</th>
+        <td>@Book?.Modified</td>
+    </tr>
+    <tr>
+        <th>File Name</th>
+        <td>@Book?.FileName</td>
+    </tr>
+    <tr>
+        <th>Page Count</th>
+        <td>@Book?.PageCount</td>
+    </tr>
+    <tr>
+        <th>Current Page</th>
+        <td>@Book?.CurrentPage</td>
+    </tr>
+</table>
+
+@code {
+    [Parameter]
+    public int? BookIdValue { get; set; }
+
+    private Book? Book { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (BookIdValue.HasValue)
+        {
+            Book = await client.GetBookAsync(BookIdValue.Value, CancellationToken.None).ConfigureAwait(false);
+        }
+    }
+}
