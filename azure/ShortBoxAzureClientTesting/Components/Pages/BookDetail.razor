@@ -33,17 +33,57 @@
     </tr>
 </table>
 
+<button @onclick="()=>PreviousPage()">-</button>
+<button @onclick="()=>NextPage()">+</button>
+<p>Page @CurrentPage / @Book?.PageCount </p>
+
+<br />
+
+<img src="@PageData" width="1024" />
+
 @code {
     [Parameter]
     public int? BookIdValue { get; set; }
 
     private Book? Book { get; set; }
 
+    private int CurrentPage { get; set; }
+
+    private string? PageData { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         if (BookIdValue.HasValue)
         {
             Book = await client.GetBookAsync(BookIdValue.Value, CancellationToken.None).ConfigureAwait(false);
+            await LoadPageAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+    }
+
+    private async Task PreviousPage()
+    {
+        if (CurrentPage > 0)
+        {
+            CurrentPage--;
+            await LoadPageAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (Book?.PageCount is int pageCount && CurrentPage < pageCount)
+        {
+            CurrentPage++;
+            await LoadPageAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+    }
+
+    private async Task LoadPageAsync(CancellationToken cancellationToken)
+    {
+        if (this.BookIdValue is int id)
+        {
+            var pageStream = await client.GetBookPageAsync(id, CurrentPage, cancellationToken).ConfigureAwait(false);
+            PageData = await pageStream.ReadBase64ImageDataAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 }

@@ -31,8 +31,9 @@ else
             if (BookIdValue.HasValue) 
             {
                 var stream = await client.GetBookCoverAsync(BookIdValue.Value, null, CancellationToken.None).ConfigureAwait(false);
-                var data = await stream.ToBase64Async().ConfigureAwait(false);
-                ImageBase64 = $"data:image/png;base64,{data}";
+                // var data = await stream.ToBase64Async().ConfigureAwait(false);
+                // ImageBase64 = $"data:image/png;base64,{data}";
+                ImageBase64 = await stream.ReadBase64ImageDataAsync(CancellationToken.None).ConfigureAwait(false);
             }
         }
         catch (Exception ex)

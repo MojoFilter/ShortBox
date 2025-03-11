@@ -39,6 +39,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShortBox.Azure", "azure\Sho
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShortBoxAzureClientTesting", "azure\ShortBoxAzureClientTesting\ShortBoxAzureClientTesting.csproj", "{DA35CD06-9750-F9B6-7EED-63B78EE9DAF6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShortBox.Azure.Services", "azure\ShortBox.Azure.Services\ShortBox.Azure.Services.csproj", "{8246A5C6-06B0-4260-B936-F6109627888A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureClientQuickTest", "azure\AzureClientQuickTest\AzureClientQuickTest.csproj", "{C8853BF8-16D5-468D-A90D-9587BD880361}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -115,6 +119,14 @@ Global
 		{DA35CD06-9750-F9B6-7EED-63B78EE9DAF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DA35CD06-9750-F9B6-7EED-63B78EE9DAF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DA35CD06-9750-F9B6-7EED-63B78EE9DAF6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8246A5C6-06B0-4260-B936-F6109627888A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8246A5C6-06B0-4260-B936-F6109627888A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8246A5C6-06B0-4260-B936-F6109627888A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8246A5C6-06B0-4260-B936-F6109627888A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8853BF8-16D5-468D-A90D-9587BD880361}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8853BF8-16D5-468D-A90D-9587BD880361}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8853BF8-16D5-468D-A90D-9587BD880361}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8853BF8-16D5-468D-A90D-9587BD880361}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -123,6 +135,8 @@ Global
 		{B91292E5-6651-B21E-BFB9-6C2913B9A585} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{3CEDCFB7-AEA7-49DE-BFBD-F321644F6816} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{DA35CD06-9750-F9B6-7EED-63B78EE9DAF6} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{8246A5C6-06B0-4260-B936-F6109627888A} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{C8853BF8-16D5-468D-A90D-9587BD880361} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2B8C2961-10F7-40B8-9E59-ACEACAC5654B}

@@ -1,4 +1,5 @@
-﻿using ShortBox.Services;
+﻿using Microsoft.Extensions.Logging;
+using ShortBox.Services;
 
 namespace ShortBox.DataAccess;
 
@@ -10,12 +11,17 @@ public interface IBookStore
     Task<Book> GetBookAsync(BookId bookId, CancellationToken ct);
     Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken ct);
     Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken ct);
+    Task<Stream> GetBookPageAsync(BookId bookId, int pageNumber, CancellationToken ct);
+    Task MarkPageAsync(BookId bookId, int pageNumber, CancellationToken ct);
 }
 
 internal class BookStore(
     IDbContextFactory<ShortBoxContext> contextFactory,
     IBookCoverFileBusiness coverBusiness,
-    IImageBusiness imageBusiness) : IBookStore
+    IImageBusiness imageBusiness,
+    IPageCache pageCache,
+    ILogger<BookStore> logger) 
+    : IBookStore
 {
     public async IAsyncEnumerable<Book> GetRecentBooksAsync([EnumeratorCancellation]CancellationToken cancellationToken)
     {
@@ -62,6 +68,24 @@ internal class BookStore(
 
     public Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken ct) => this.GetIssuesAsync(seriesName, false, ct);
 
+    public async Task MarkPageAsync(BookId bookId, int pageNumber, CancellationToken ct)
+    {
+        using var context = await this.GetContextAsync(ct).ConfigureAwait(false);
+        await context.Books
+                     .Where(b => b.Id == bookId)
+                     .ExecuteUpdateAsync(s =>
+                        s.SetProperty(b => b.CurrentPage, pageNumber)
+                         .SetProperty(b => b.Modified, DateTime.Now));
+    }
+
+    public async Task<Stream> GetBookPageAsync(BookId bookId, int pageNumber, CancellationToken ct)
+    {
+        _logger.LogInformation("Fetching book details of book {bookId}", bookId);
+        var book = await this.GetBookAsync(bookId, ct).ConfigureAwait(false);
+        _logger.LogInformation("Got book detail of book {bookId} ({title} #{number})", bookId, book.Series, book.Number);
+        return await _pageCache.GetPageAsync(bookId, book.FileName, pageNumber, ct).ConfigureAwait(false);
+    }
+
     private async Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, bool unread, CancellationToken ct)
     { 
         using var context = await this.GetContextAsync(ct).ConfigureAwait(false);
@@ -96,4 +120,6 @@ internal class BookStore(
     private IDbContextFactory<ShortBoxContext> _contextFactory = contextFactory;
     private IBookCoverFileBusiness _coverBusiness = coverBusiness;
     private IImageBusiness _imageBusiness = imageBusiness;
+    private IPageCache _pageCache = pageCache;
+    private ILogger<BookStore> _logger = logger;
 }

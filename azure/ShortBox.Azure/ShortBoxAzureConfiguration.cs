@@ -13,6 +13,7 @@ public static class ShortBoxAzureConfiguration
                 {
                     var options = p.GetRequiredService<IOptions<ShortBoxAzureOptions>>().Value;
                     client.BaseAddress = options.BaseAddress;
+                    client.Timeout = TimeSpan.FromHours(2.0);
                 });
         return services;
     }

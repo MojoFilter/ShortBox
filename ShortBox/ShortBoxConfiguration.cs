@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-using ShortBox;
+﻿using ShortBox;
 using ShortBox.Services;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -18,6 +17,9 @@ public static class ShortBoxConfiguration
                 .AddTransient<IComicFolderScanner, ComicFolderScanner>()
                 .AddTransient<IComicFileReader, ComicFileReader>()
                 .AddTransient<IArchiveReaderFactory, ArchiveReaderFactory>()
-                .AddTransient<IImageBusiness, ImageBusiness>();
+                .AddTransient<IImageBusiness, ImageBusiness>()
+                .AddTransient<IArchiveBusiness, ArchiveBusiness>()
+                .AddKeyedTransient<IArchiveExtractor, ZipExtractor>(ServiceKeys.ZipExtractor)
+                .AddKeyedTransient<IArchiveExtractor, RarExtractor>(ServiceKeys.RarExtractor);
                 //.AddMarvelApi(marvelApiConfiguration);
 }

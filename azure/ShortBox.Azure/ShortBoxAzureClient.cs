@@ -29,9 +29,17 @@ public class ShortBoxAzureClient(IHttpClientFactory clientFactory) : IShortBoxRe
         this.GetClient().GetStreamAsync($"api/book/{bookId}/cover", cancellationToken);
 
     public Task<Stream> GetBookPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+        this.GetClient().GetStreamAsync($"api/book/{bookId}/{pageNumber}", cancellationToken);
 
-    private HttpClient GetClient() => _clientFactory.CreateClient(nameof(ShortBoxAzureClient));
+    public Task MarkPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken) =>
+        this.GetClient().PutAsync($"api/book/{bookId}/mark/{pageNumber}", default, cancellationToken);
+
+    private HttpClient GetClient()
+    {
+        var client = _clientFactory.CreateClient(nameof(ShortBoxAzureClient));
+        client.Timeout = Timeout.InfiniteTimeSpan;
+        return client;
+    }
 
     private readonly IHttpClientFactory _clientFactory = clientFactory;
 }

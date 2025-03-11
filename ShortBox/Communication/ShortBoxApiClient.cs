@@ -9,13 +9,13 @@ public interface IShortBoxReaderClient
     Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken cancellationToken = default);
     Task<Stream> GetBookCoverAsync(int bookId, int? height, CancellationToken cancellationToken);
     Task<Stream> GetBookPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken);
+    Task MarkPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken);
 }
 
 public interface IShortBoxApiClient : IShortBoxReaderClient, IDisposable
 {
     Task CombineSeriesNamesAsync(string[] seriesToCombine, string combinedName, CancellationToken cancellationToken);
     Task<Stream> GetSeriesCoverAsync(string seriesName, int? height, CancellationToken cancellationToken = default);
-    Task MarkPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken);
 }
 
 public interface IShortBoxApiClientFactory
