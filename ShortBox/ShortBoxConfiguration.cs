@@ -19,6 +19,7 @@ public static class ShortBoxConfiguration
                 .AddTransient<IArchiveReaderFactory, ArchiveReaderFactory>()
                 .AddTransient<IImageBusiness, ImageBusiness>()
                 .AddTransient<IArchiveBusiness, ArchiveBusiness>()
+                .AddTransient<ICoverBusiness, CoverBusiness>()
                 .AddKeyedTransient<IArchiveExtractor, ZipExtractor>(ServiceKeys.ZipExtractor)
                 .AddKeyedTransient<IArchiveExtractor, RarExtractor>(ServiceKeys.RarExtractor);
                 //.AddMarvelApi(marvelApiConfiguration);

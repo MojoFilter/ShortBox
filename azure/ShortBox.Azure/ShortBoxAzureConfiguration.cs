@@ -9,11 +9,13 @@ public static class ShortBoxAzureConfiguration
     {
         services.Configure(configure);
         services.AddSingleton<IShortBoxReaderClient, ShortBoxAzureClient>()
+                .AddSingleton<IShortBoxReaderClientFactory, ShortBoxAzureClientFactory>()
                 .AddHttpClient<ShortBoxAzureClient>((p, client) =>
                 {
                     var options = p.GetRequiredService<IOptions<ShortBoxAzureOptions>>().Value;
                     client.BaseAddress = options.BaseAddress;
                     client.Timeout = TimeSpan.FromHours(2.0);
+                    client.DefaultRequestHeaders.Add("x-functions-key", options.HostKey);
                 });
         return services;
     }

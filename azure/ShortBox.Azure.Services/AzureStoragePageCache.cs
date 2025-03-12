@@ -11,6 +11,8 @@ internal class AzureStoragePageCache(
     BlobServiceClient blobServiceClient,
     IArchiveStore archiveStore,
     IArchiveBusiness archiveBusiness,
+    ICoverStore coverStore,
+    ICoverBusiness coverBusiness,
     ILogger<AzureStoragePageCache> log)
     : IPageCache
 {
@@ -49,6 +51,19 @@ internal class AzureStoragePageCache(
         return downloadResponse.Value.Content;
     }
 
+    public async Task<Stream> GetCoverAsync(BookId bookId, string bookFileName, CancellationToken ct)
+    {
+        var containerClient = _serviceClient.GetBlobContainerClient(CoversContainerName);
+        await containerClient.CreateIfNotExistsAsync(cancellationToken: ct).ConfigureAwait(false);
+        var blobClient = containerClient.GetBlobClient(bookId.ToString());
+        var existsResponse = await blobClient.ExistsAsync(ct).ConfigureAwait(false);
+        if (existsResponse.Value)
+        {
+            return await blobClient.OpenReadAsync(new(true), ct).ConfigureAwait(false);
+        }
+        return await this.CacheCoverAsync(bookId, bookFileName, ct).ConfigureAwait(false);
+    }
+
     private ValueTask<List<BlobItem>> GetBlobsInVirtualFolderAsync(
         BlobContainerClient client,
         string folder,
@@ -75,10 +90,27 @@ internal class AzureStoragePageCache(
         }
     }
 
+    private async Task<Stream> CacheCoverAsync(BookId bookId, string bookFileName, CancellationToken ct)
+    {
+        using var fullCover = await _coverStore.GetCoverAsync(bookFileName, ct).ConfigureAwait(false);
+        using var thumbnailStream = await _coverBusiness.CreateThumbnailAsync(fullCover, ct).ConfigureAwait(false);
+        var stream = new MemoryStream();
+        await thumbnailStream.CopyToAsync(stream, ct).ConfigureAwait(false);
+        stream.Position = 0;
+        var containerClient = _serviceClient.GetBlobContainerClient(CoversContainerName);
+        var blobClient = containerClient.GetBlobClient(bookId.ToString());
+        await blobClient.UploadAsync(stream, true, ct).ConfigureAwait(false);
+        stream.Position = 0;
+        return stream;
+    }
+
     private readonly IArchiveBusiness _archiveBusiness = archiveBusiness;
     private readonly IArchiveStore _archiveStore = archiveStore;
+    private readonly ICoverBusiness _coverBusiness = coverBusiness;
+    private readonly ICoverStore _coverStore = coverStore;
     private readonly BlobServiceClient _serviceClient = blobServiceClient;
     private readonly ILogger<AzureStoragePageCache> _log = log;
 
     private const string PagesContainerName = "pages";
+    private const string CoversContainerName = "covers";
 }

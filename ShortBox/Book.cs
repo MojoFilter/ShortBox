@@ -2,7 +2,10 @@
 
 public record Series(string Name);
 
-public abstract record IntId(int Value);
+public abstract record IntId(int Value)
+{
+    public override string ToString() => Value.ToString();
+}
 
 public sealed record BookId(int Value) : IntId(Value)
 {

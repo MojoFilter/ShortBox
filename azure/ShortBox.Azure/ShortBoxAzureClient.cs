@@ -1,16 +1,23 @@
 ﻿namespace ShortBox.Azure;
 
+internal class ShortBoxAzureClientFactory(IHttpClientFactory clientFactory) : IShortBoxReaderClientFactory
+{
+    public IShortBoxReaderClient CreateClient() => new ShortBoxAzureClient(_clientFactory);
+
+    private readonly IHttpClientFactory _clientFactory = clientFactory;
+}
+
 public class ShortBoxAzureClient(IHttpClientFactory clientFactory) : IShortBoxReaderClient
 {
     public Task<IEnumerable<Book>> GetAllBooksAsync(CancellationToken cancellationToken = default) =>
-        GetClient().GetSomeAsync<Book>("api/Books", cancellationToken);
+        WithClient(client => client.GetSomeAsync<Book>("api/Books", cancellationToken));
 
     public Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken = default) =>
-        GetClient().GetSomeAsync<Series>("api/series", cancellationToken);
+        WithClient(client => client.GetSomeAsync<Series>("api/series", cancellationToken));
 
     public async Task<Book?> GetBookAsync(int bookId, CancellationToken cancellationToken = default)
     {
-        var response = await GetClient().GetAsync($"api/book/{bookId}", cancellationToken).ConfigureAwait(false);
+        var response = await WithClient(client => client.GetAsync($"api/book/{bookId}", cancellationToken)).ConfigureAwait(false);
         return response.StatusCode switch
         {
             HttpStatusCode.OK => await response.Content.ReadFromJsonAsync<Book>(),
@@ -20,25 +27,25 @@ public class ShortBoxAzureClient(IHttpClientFactory clientFactory) : IShortBoxRe
     }
 
     public Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken cancellationToken = default) =>
-        GetClient().GetSomeAsync<Book>($"api/series/{seriesName}", cancellationToken);
+        WithClient(client => client.GetSomeAsync<Book>($"api/series/{seriesName}", cancellationToken));
 
     public Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken cancellationToken = default) =>
-        GetClient().GetSomeAsync<Book>($"api/series/{seriesName}/archive", cancellationToken);
+        WithClient(client => client.GetSomeAsync<Book>($"api/series/{seriesName}/archive", cancellationToken));
 
     public Task<Stream> GetBookCoverAsync(int bookId, int? height, CancellationToken cancellationToken) =>
-        this.GetClient().GetStreamAsync($"api/book/{bookId}/cover", cancellationToken);
+        this.WithClient(client => client.GetStreamAsync($"api/book/{bookId}/cover", cancellationToken));
 
     public Task<Stream> GetBookPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken) =>
-        this.GetClient().GetStreamAsync($"api/book/{bookId}/{pageNumber}", cancellationToken);
+        this.WithClient(client => client.GetStreamAsync($"api/book/{bookId}/{pageNumber}", cancellationToken));
 
     public Task MarkPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken) =>
-        this.GetClient().PutAsync($"api/book/{bookId}/mark/{pageNumber}", default, cancellationToken);
+        this.WithClient(client => client.PutAsync($"api/book/{bookId}/mark/{pageNumber}", default, cancellationToken));
 
-    private HttpClient GetClient()
+    private async Task<T> WithClient<T>(Func<HttpClient, Task<T>> query)
     {
-        var client = _clientFactory.CreateClient(nameof(ShortBoxAzureClient));
+        using var client = _clientFactory.CreateClient(nameof(ShortBoxAzureClient));
         client.Timeout = Timeout.InfiniteTimeSpan;
-        return client;
+        return await query(client).ConfigureAwait(false);
     }
 
     private readonly IHttpClientFactory _clientFactory = clientFactory;

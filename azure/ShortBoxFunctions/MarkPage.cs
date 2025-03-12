@@ -5,7 +5,7 @@ public class MarkPage(IBookStore bookStore, ILogger<MarkPage> logger)
 
     [Function("MarkPage")]
     public async Task<IActionResult> Run(
-        [HttpTrigger(AuthorizationLevel.Admin, "put", Route ="/book/{bookId:int}/mark/{pageNumber:int}")] 
+        [HttpTrigger(AuthorizationLevel.Admin, "put", Route ="book/{bookId:int}/mark/{pageNumber:int}")] 
         HttpRequest req,
         int bookId,
         int pageNumber)

@@ -17,8 +17,6 @@ public interface IBookStore
 
 internal class BookStore(
     IDbContextFactory<ShortBoxContext> contextFactory,
-    IBookCoverFileBusiness coverBusiness,
-    IImageBusiness imageBusiness,
     IPageCache pageCache,
     ILogger<BookStore> logger) 
     : IBookStore
@@ -40,8 +38,11 @@ internal class BookStore(
     public async Task<byte[]> GetBookCoverAsync(BookId bookId, int? height, CancellationToken ct)
     {
         using var context = await this.GetContextAsync(ct).ConfigureAwait(false);
-        var book = await this.GetBookByIdAsync(bookId, context, ct).ConfigureAwait(false); ;
-        return await this.GetCoverFileAsync(book, height, ct);
+        var book = await this.GetBookByIdAsync(bookId, context, ct).ConfigureAwait(false);
+        using var fileStream = await _pageCache.GetCoverAsync(book.Id, book.FileName, ct).ConfigureAwait(false);
+        using var localStream = new MemoryStream();
+        await fileStream.CopyToAsync(localStream, ct).ConfigureAwait(false);
+        return localStream.ToArray();
     }
 
     public async Task<IEnumerable<Series>> GetAllSeriesAsync(CancellationToken cancellationToken)
@@ -106,20 +107,7 @@ internal class BookStore(
         await context.Books.FirstOrDefaultAsync(b => b.Id == bookId, ct)
             ?? throw new KeyNotFoundException($"Book not found with ID {bookId}");
 
-    private async Task<byte[]> GetCoverFileAsync(Book book, int? height, CancellationToken ct)
-    {
-        using var inputStream = await _coverBusiness.GetCoverStreamAsync(book.Id, ct).ConfigureAwait(false);
-        using var localStream = new MemoryStream();
-        await inputStream.CopyToAsync(localStream, ct).ConfigureAwait(false);
-        localStream.Position = 0;
-        using var image = await _imageBusiness.LoadImageAsync(localStream, height, ct);
-        using var reader = new BinaryReader(image);
-        return reader.ReadBytes((int)image.Length);
-    }
-
     private IDbContextFactory<ShortBoxContext> _contextFactory = contextFactory;
-    private IBookCoverFileBusiness _coverBusiness = coverBusiness;
-    private IImageBusiness _imageBusiness = imageBusiness;
     private IPageCache _pageCache = pageCache;
     private ILogger<BookStore> _logger = logger;
 }

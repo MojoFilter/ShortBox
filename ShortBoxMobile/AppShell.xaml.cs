@@ -3,7 +3,7 @@
 public partial class AppShell : Shell
 {
 
-    public AppShell(IShortBoxApiClientFactory shortBoxApiClientFactory)
+    public AppShell(IShortBoxReaderClientFactory shortBoxApiClientFactory)
     {
         _clientFactory = shortBoxApiClientFactory;
         InitializeComponent();
@@ -18,7 +18,7 @@ public partial class AppShell : Shell
 
     private async Task RefreshSeriesAsync()
     {
-        using var client = _clientFactory.CreateClient();
+        var client = _clientFactory.CreateClient();
         var allSeries = await client.GetAllSeriesAsync();
         var seriesStyle = this.Resources["seriesStyle"] as Style;
         foreach (var series in allSeries)
@@ -33,7 +33,7 @@ public partial class AppShell : Shell
         }
     }
 
-    private readonly IShortBoxApiClientFactory _clientFactory;
+    private readonly IShortBoxReaderClientFactory _clientFactory;
 }
 
 

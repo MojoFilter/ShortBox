@@ -18,7 +18,12 @@ public interface IShortBoxApiClient : IShortBoxReaderClient, IDisposable
     Task<Stream> GetSeriesCoverAsync(string seriesName, int? height, CancellationToken cancellationToken = default);
 }
 
-public interface IShortBoxApiClientFactory
+public interface IShortBoxReaderClientFactory 
+{
+    IShortBoxReaderClient CreateClient();
+}
+
+internal interface IShortBoxApiClientFactory
 {
     IShortBoxApiClient CreateClient();
 }

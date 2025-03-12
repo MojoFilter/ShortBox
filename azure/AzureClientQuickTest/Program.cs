@@ -1,12 +1,18 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ShortBox.Communication;
 using System.Diagnostics;
 
+var config = new ConfigurationBuilder()
+    .AddUserSecrets<Program>()
+    .Build();
+
 var services = new ServiceCollection()
     .AddShortBoxAzure(opt =>
     {
-        opt.BaseAddress = new("http://localhost:7206");
+        opt.BaseAddress = new(config["FunctionsBaseUrl"] ?? "http://localhost:7206");
+        opt.HostKey = config["FunctionsKey"] ?? throw new InvalidOperationException("Missing FunctionsKey");
     })
     .AddLogging(cfg =>
     {
@@ -20,7 +26,7 @@ var client = services.GetRequiredService<IShortBoxReaderClient>();
 
 log.LogInformation("Fetching page");
 var sw = Stopwatch.StartNew();
-using (var stream = await client.GetBookPageAsync(3864, 0, CancellationToken.None))
+using (var stream = await client.GetBookCoverAsync(3863, 250, CancellationToken.None))
 using (var file = File.Create("page.jpg"))
 {
     sw.Stop();

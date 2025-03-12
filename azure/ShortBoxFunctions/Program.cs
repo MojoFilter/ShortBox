@@ -10,7 +10,7 @@ builder.Services.AddShortBoxServices()
                 .AddShortBoxDataAccess(builder.Configuration)
                 .AddShortBoxGoogle(opt =>
                 {
-                    opt.CoversFolderId = builder.Configuration["Google:CoversFolderId"] ?? throw new InvalidOperationException("Missing Google:ConversFolderId");
+                    opt.CoversFolderId = builder.Configuration["Google:CoversFolderId"] ?? throw new InvalidOperationException("Missing Google:CoversFolderId");
                     opt.ArchivesFolderId = builder.Configuration["Google:ArchivesFolderId"] ?? throw new InvalidOperationException("Missing Google:ArchivesFolderId");
                     opt.CredentialsJson = builder.Configuration["Google:CredentialsJson"] ?? throw new InvalidOperationException("Missing Google:CredentialsJson");
                     opt.CredentialsUser = builder.Configuration["Google:CredentialsUser"] ?? throw new InvalidOperationException("Missing Google:CredentialsUser");
