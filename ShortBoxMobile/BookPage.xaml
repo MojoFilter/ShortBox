@@ -13,7 +13,7 @@
         <ToolbarItem Text="Next" Command="{Binding NextPageCommand}" />
     </ContentPage.ToolbarItems>
     <ContentPage.Resources>
-        <!--<local:BookPageUriConverter x:Key="uriConverter" />-->
+        <local:BookPageUriConverter x:Key="uriConverter" />
         <toolkit:InvertedBoolConverter x:Key="invertConvert" />
     </ContentPage.Resources>
     <Shell.TitleView>

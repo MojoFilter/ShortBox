@@ -1,3 +1,7 @@
+#if WINDOWS
+using Windows.Storage.Streams;
+#endif
+
 namespace ShortBoxMobile;
 
 public partial class CoverView : ContentView
@@ -25,21 +29,20 @@ public partial class CoverView : ContentView
         var client = Application.Current.Handler.MauiContext.Services.GetRequiredService<IShortBoxReaderClient>();
         try
         {
-            using var memStream = new MemoryStream();
-            using (var rawStream = await client.GetBookCoverAsync(this.BookId, 250, CancellationToken.None))
-            {
-                await rawStream.CopyToAsync(memStream);
-                memStream.Position = 0;
-            }
-            await Dispatcher.DispatchAsync(() =>
-            {
+            ImageSource imageSource;
+            using var rawStream = await client.GetBookCoverAsync(this.BookId, 250, CancellationToken.None);
 #if WINDOWS
-                var raStream = memStream.AsRandomAccessStream();
-                this.coverImage.Source = ImageSource.FromStream(() => raStream.AsStream());
+            var raStream = new InMemoryRandomAccessStream();
+            using (var outputStream = raStream.GetOutputStreamAt(0))
+            {
+                await rawStream.CopyToAsync(outputStream.AsStreamForWrite()).ConfigureAwait(false);
+                await outputStream.FlushAsync();
+            }
+            raStream.Seek(0);
+            imageSource = ImageSource.FromStream(() => raStream.AsStream());
 #else
-            this.coverImage.Source = ImageSource.FromStream(() => memStream);
+            imageSource = ImageSource.FromStream(() => rawStream);
 #endif
-            });
         }
         catch (Exception ex)
         {

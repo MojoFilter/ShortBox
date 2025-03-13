@@ -3,6 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:ShortBoxMobile"
              x:Class="ShortBoxMobile.MainPage">
+    <ContentPage.Resources>
+        <local:BookCoverUriConverter x:Key="coverConverter" />
+    </ContentPage.Resources>
     <RefreshView IsRefreshing="{Binding IsRefreshing}"
                  Command="{Binding RefreshBooksCommand}">
         <CollectionView x:Name="booksView"
@@ -21,12 +24,12 @@
                             <RowDefinition Height="35" />
                             <RowDefinition Height="35" />
                         </Grid.RowDefinitions>
-                        <!--<Image>
+                        <Image>
                             <Image.Source>
                                 <UriImageSource Uri="{Binding Converter={StaticResource coverConverter}}" />
                             </Image.Source>
-                        </Image>-->
-                        <local:CoverView BookId="{Binding Id.Value}" />
+                        </Image>
+                        <!--<local:CoverView BookId="{Binding Id.Value}" />-->
                         <Label Grid.Row="1"
                                HorizontalTextAlignment="Center"
                                Text="{Binding Series}" />
