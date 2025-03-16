@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using ShortBox.Services;
+using System.Threading.Tasks;
 
 namespace ShortBox.DataAccess;
 
@@ -13,6 +14,7 @@ public interface IBookStore
     Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken ct);
     Task<Stream> GetBookPageAsync(BookId bookId, int pageNumber, CancellationToken ct);
     Task MarkPageAsync(BookId bookId, int pageNumber, CancellationToken ct);
+    Task CleanUpReadBooksAsync(CancellationToken cancellationToken);
 }
 
 internal class BookStore(
@@ -106,6 +108,24 @@ internal class BookStore(
     private async Task<Book> GetBookByIdAsync(BookId bookId, ShortBoxContext context, CancellationToken ct) =>
         await context.Books.FirstOrDefaultAsync(b => b.Id == bookId, ct)
             ?? throw new KeyNotFoundException($"Book not found with ID {bookId}");
+
+    public async Task CleanUpReadBooksAsync(CancellationToken cancellationToken)
+    {
+        var cachedBookIds = await _pageCache.GetCachedBookIdsAsync(cancellationToken).ConfigureAwait(false);
+        using var context = await this.GetContextAsync(cancellationToken).ConfigureAwait(false);
+        var booksToDecache = await this.GetBooksToDecacheAsync(cachedBookIds, context, cancellationToken).ConfigureAwait(false);
+        await _pageCache.DecacheBooksAsync(booksToDecache, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<IEnumerable<Book>> GetBooksToDecacheAsync(
+        IEnumerable<BookId> cachedBookIds, 
+        ShortBoxContext context,
+        CancellationToken cancellationToken) => await
+        context.Books
+            .Where(b => cachedBookIds.Contains(b.Id))
+            .Where(b => b.Modified < DateTime.Now.AddDays(-1))
+            .WhereRead()
+            .ToListAsync(cancellationToken);    
 
     private IDbContextFactory<ShortBoxContext> _contextFactory = contextFactory;
     private IPageCache _pageCache = pageCache;

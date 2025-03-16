@@ -106,6 +106,64 @@ internal class AzureStoragePageCache(
         return stream;
     }
 
+    public async Task DecacheBooksAsync(IEnumerable<Book> booksToDecache, CancellationToken cancellationToken)
+    {
+        _log.LogInformation("Decaching books {books}", booksToDecache.Select(b => $"{b.Series} #{b.Number}"));
+        var ids = booksToDecache.Select(b => b.Id);
+        await this.DeletePagesAsync(ids, cancellationToken).ConfigureAwait(false);
+        await this.DeleteCoversAsync(booksToDecache, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IEnumerable<BookId>> GetCachedBookIdsAsync(CancellationToken cancellationToken)
+    {
+        var folders = await this.ListPageFoldersAsync(cancellationToken).ConfigureAwait(false);
+        return from folder in folders
+               let trimmed = folder.TrimEnd('/')
+               let parsed = int.TryParse(trimmed, out var id) ? (int?)id : null
+               where parsed is not null
+               select new BookId(parsed.Value);
+    }
+
+    private async Task<IEnumerable<string>> ListPageFoldersAsync(CancellationToken cancellationToken)
+    {
+        var containerClient = _serviceClient.GetBlobContainerClient(PagesContainerName);
+        var folders = new List<string>();
+        var blobs = containerClient.GetBlobsByHierarchyAsync(delimiter: "/", cancellationToken: cancellationToken);
+        await foreach (var blob in blobs)
+        {
+            if (blob.Prefix is not null)
+            {
+                folders.Add(blob.Prefix);
+            }
+        }
+        return folders;
+    }
+
+    private async Task DeleteCoversAsync(IEnumerable<Book> booksToDecache, CancellationToken cancellationToken)
+    {
+        var containerClient = _serviceClient.GetBlobContainerClient(CoversContainerName);
+        var blobNames = booksToDecache.Select(b => $"{b.FileName}.jpg");
+        foreach (var blobName in blobNames)
+        {
+            await containerClient.DeleteBlobIfExistsAsync(blobName, DeleteSnapshotsOption.IncludeSnapshots, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task DeletePagesAsync(IEnumerable<BookId> bookIds, CancellationToken cancellationToken)
+    {
+        var containerClient = _serviceClient.GetBlobContainerClient(PagesContainerName);
+        foreach (var bookId in bookIds)
+        {
+            var folder = $"{bookId.Value}/";
+            var folderBlobs = await this.GetBlobsInVirtualFolderAsync(containerClient, folder, cancellationToken).ConfigureAwait(false);
+            foreach (var blob in folderBlobs)
+            {
+                var blobClient = containerClient.GetBlobClient(blob.Name);
+                await blobClient.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
     private readonly IArchiveBusiness _archiveBusiness = archiveBusiness;
     private readonly IArchiveStore _archiveStore = archiveStore;
     private readonly ICoverBusiness _coverBusiness = coverBusiness;
