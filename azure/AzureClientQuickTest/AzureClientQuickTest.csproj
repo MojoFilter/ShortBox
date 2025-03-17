@@ -9,11 +9,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.24.0" />
+    <PackageReference Include="Microsoft.Extensions.Azure" Version="1.11.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.2" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\ShortBox.Google\ShortBox.Google.csproj" />
+    <ProjectReference Include="..\ShortBox.Azure.Services\ShortBox.Azure.Services.csproj" />
     <ProjectReference Include="..\ShortBox.Azure\ShortBox.Azure.csproj" />
   </ItemGroup>
 

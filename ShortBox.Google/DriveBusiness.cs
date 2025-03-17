@@ -26,7 +26,7 @@ internal class DriveBusiness(
     private async Task<string> FindFileIdAsync(DriveService service, string fileName, string folderId, CancellationToken ct)
     {
         var request = service.Files.List();
-        request.Q = $"'{folderId}' in parents and name = '{fileName}'";
+        request.Q = $"'{folderId}' in parents and name = '{this.EscapeFileName(fileName)}'";
         request.Fields = "files(id)";
         var response = await request.ExecuteAsync(ct);
         return response.Files.FirstOrDefault()?.Id ?? throw new FileNotFoundException($"{fileName} not found");
@@ -40,6 +40,8 @@ internal class DriveBusiness(
         stream.Seek(0, SeekOrigin.Begin);
         return stream;
     }
+
+    private string EscapeFileName(string fileName) => fileName.Replace("'", "\\'");
 
     private readonly GoogleOptions _opt = options.Value;
     private readonly IDriveServiceFactory _driveServiceFactory = driveServiceFactory;
