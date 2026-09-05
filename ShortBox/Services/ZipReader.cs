@@ -44,6 +44,9 @@ internal sealed class ZipReader : IZipReader
         return default;
     }
 
-    private static readonly string[] PageImageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+    private static readonly HashSet<string> PageImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".jpg", ".jpeg", ".png", ".gif"
+    };
 
 }

@@ -77,8 +77,12 @@ internal class FolderBookStore : IFolderBookStore, IBookStore {
 
     public async Task AddBooksAsync(IEnumerable<Book> books, CancellationToken ct)
     {
-        await _context.Books.AddRangeAsync(books);
-        await _context.SaveChangesAsync();
+        foreach (var book in books)
+        {
+            await _context.Books.AddAsync(book, ct);
+            await _context.SaveChangesAsync(ct);
+            _context.Entry(book).State = EntityState.Detached;
+        }
     }
 
     public Task<Book> GetBookAsync(BookId bookId, CancellationToken ct) => this.GetBookByIdAsync(bookId, ct);

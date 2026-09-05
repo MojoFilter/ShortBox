@@ -58,7 +58,10 @@ internal abstract class ArchiveReader : IArchiveReader
 
     protected abstract Stream? OpenEntry(IArchiveFileEntry? entry);
 
-    private static readonly string[] PageImageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+    private static readonly HashSet<string> PageImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".jpg", ".jpeg", ".png", ".gif"
+    };
 
 }
 

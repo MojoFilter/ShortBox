@@ -75,9 +75,9 @@ app.MapGet("/scan", (IComicFolderScanner scanner, CancellationToken ct) => scann
    .WithName("Scan")
    .WithOpenApi();
 
-app.MapGet("/pullList/update", UpdatePullListAsync)
-    .WithName("UpdatePullList")
-    .WithOpenApi();
+//app.MapGet("/pullList/update", UpdatePullListAsync)
+//    .WithName("UpdatePullList")
+//    .WithOpenApi();
 
 app.Run();
 

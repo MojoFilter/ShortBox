@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace ShortBox.Api.Data; 
@@ -20,6 +21,17 @@ public class ShortBoxContext : DbContext {
         configurationBuilder
             .Properties<PullListEntryId>()
             .HaveConversion<IntIdConverter<PullListEntryId>>();
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Book>()
+            .Property(b => b.Id)
+            .ValueGeneratedOnAdd();
+
+        modelBuilder.Entity<Book>()
+            .Property(b => b.Id)
+            .Metadata.SetBeforeSaveBehavior(PropertySaveBehavior.Ignore);
     }
 
     private class IntIdConverter<T> : ValueConverter<T, int> where T : IntId 

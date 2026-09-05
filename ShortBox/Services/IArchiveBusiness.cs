@@ -59,7 +59,10 @@ internal class ArchiveBusiness(
 
 internal abstract class Extractor
 { 
-    protected static readonly HashSet<string> PageImageExtensions = [".jpg", ".jpeg", ".png", ".gif"];
+    protected static readonly HashSet<string> PageImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".jpg", ".jpeg", ".png", ".gif"
+    };
 
 }
 
