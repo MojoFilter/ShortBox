@@ -1,4 +1,6 @@
-﻿namespace ShortBox.Azure;
+﻿using ShortBox.Services;
+
+namespace ShortBox.Azure;
 
 internal class ShortBoxAzureClientFactory(IHttpClientFactory clientFactory) : IShortBoxReaderClientFactory
 {
@@ -7,8 +9,36 @@ internal class ShortBoxAzureClientFactory(IHttpClientFactory clientFactory) : IS
     private readonly IHttpClientFactory _clientFactory = clientFactory;
 }
 
-public class ShortBoxAzureClient(IHttpClientFactory clientFactory) : IShortBoxReaderClient
+public class ShortBoxAzureClient(IHttpClientFactory clientFactory) : IShortBoxReaderClient, IShortBoxReleasesClient
 {
+    public Task<IEnumerable<PullListEntry>> GetReleasesAsync(DateOnly? week = null, bool refresh = false, CancellationToken cancellationToken = default)
+    {
+        var query = $"?refresh={refresh.ToString().ToLowerInvariant()}"
+                  + (week is { } date ? $"&week={date:yyyy-MM-dd}" : string.Empty);
+        return WithClient(client => client.GetSomeAsync<PullListEntry>($"api/releases{query}", cancellationToken));
+    }
+
+    public Task<IEnumerable<PullListEntry>> GetWantedAsync(CancellationToken cancellationToken = default) =>
+        WithClient(client => client.GetSomeAsync<PullListEntry>("api/wanted", cancellationToken));
+
+    public Task SetWantedAsync(int entryId, bool wanted, CancellationToken cancellationToken = default) =>
+        WithClient(async client =>
+        {
+            using var response = await client.PutAsync(
+                $"api/releases/{entryId}/wanted/{wanted.ToString().ToLowerInvariant()}", default, cancellationToken).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            return true;
+        });
+
+    public Task<IngestResult> ScanLibraryAsync(CancellationToken cancellationToken = default) =>
+        WithClient(async client =>
+        {
+            using var response = await client.PostAsync("api/library/scan", default, cancellationToken).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<IngestResult>(cancellationToken).ConfigureAwait(false)
+                ?? new IngestResult([], [], 0);
+        });
+
     public Task<IEnumerable<Book>> GetAllBooksAsync(CancellationToken cancellationToken = default) =>
         WithClient(client => client.GetSomeAsync<Book>("api/Books", cancellationToken));
 

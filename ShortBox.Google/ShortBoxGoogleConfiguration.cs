@@ -8,6 +8,7 @@ public static class ShortBoxGoogleConfigurationExtensions
         services.AddTransient<IBookCoverFileBusiness, BookCoverFileBusiness>()
                 .AddTransient<IDriveBusiness, DriveBusiness>()
                 .AddTransient<IArchiveStore, ArchiveStore>()
+                .AddTransient<IArchiveLibrary, ArchiveLibrary>()
                 .AddTransient<ICoverStore, CoverStore>()
                 .AddTransient<IDriveServiceFactory, DriveServiceFactory>()
                 .Configure(googleConfig);

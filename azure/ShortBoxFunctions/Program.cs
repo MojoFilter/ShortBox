@@ -7,6 +7,7 @@ var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 builder.Services.AddShortBoxServices()
+                .AddShortBoxAcquisition()
                 .AddShortBoxDataAccess(builder.Configuration)
                 .AddShortBoxGoogle(opt =>
                 {
@@ -18,6 +19,27 @@ builder.Services.AddShortBoxServices()
                 .AddShortBoxAzureServices()
                 .AddAzureClients(builder =>
                 builder.AddBlobServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage")));
+
+// Where the weekly releases come from: set Releases__Source to "Metron" to switch; Comic Vine is the default.
+// The credentials are optional at startup so the reader functions keep working without them;
+// release lookups fail until they are set.
+if (string.Equals(builder.Configuration["Releases:Source"], "Metron", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddShortBoxMetron(opt =>
+    {
+        opt.Username = builder.Configuration["Metron:Username"] ?? string.Empty;
+        opt.Password = builder.Configuration["Metron:Password"] ?? string.Empty;
+        opt.Publisher = builder.Configuration["Metron:Publisher"] ?? "marvel";
+    });
+}
+else
+{
+    builder.Services.AddShortBoxComicVine(opt =>
+    {
+        opt.ApiKey = builder.Configuration["ComicVine:ApiKey"] ?? string.Empty;
+        opt.Publisher = builder.Configuration["ComicVine:Publisher"] ?? "Marvel";
+    });
+}
 
 builder.ConfigureFunctionsWebApplication();
 

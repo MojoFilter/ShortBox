@@ -12,5 +12,6 @@ public static class ShortBoxApiConfiguration
                 .AddTransient<IBookStore, FolderBookStore>()
                 .AddTransient<IFolderBookStore, FolderBookStore>()
                 .AddShortBoxServices()//configuration.GetSection("MarvelApi"))
+                .AddShortBoxFolderScanner()
                 .Configure<FolderBookStoreOptions>(configuration.GetSection("store"));
 }
