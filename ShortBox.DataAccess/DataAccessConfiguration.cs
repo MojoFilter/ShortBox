@@ -9,5 +9,7 @@ public static class DataAccessConfiguration
     public static IServiceCollection AddShortBoxDataAccess(this IServiceCollection services, IConfiguration configuration) =>
         services.AddDbContextFactory<ShortBoxContext>(options => options.UseSqlServer(configuration.GetConnectionString("ShortBoxContext")))
                 .AddTransient<IBookStore, BookStore>()
-                .AddTransient<IBookRepo, BookRepo>();
+                .AddTransient<IBookRepo, BookRepo>()
+                .AddTransient<IBookCatalog, BookCatalog>()
+                .AddTransient<IPullListStore, PullListStore>();
 }

@@ -1,0 +1,132 @@
+@page "/releases"
+@rendermode InteractiveServer
+@using ShortBox.Api.Data
+@using ShortBox.Communication
+
+@inject IShortBoxReleasesClient releases
+
+<h3>New Releases</h3>
+
+<div class="mb-3 d-flex gap-2 align-items-center">
+    <button class="btn btn-outline-secondary" @onclick="() => ChangeWeekAsync(-7)" disabled="@busy">&laquo; Previous</button>
+    <strong>Week of @week.ToString("MMM d, yyyy")</strong>
+    <button class="btn btn-outline-secondary" @onclick="() => ChangeWeekAsync(7)" disabled="@busy">Next &raquo;</button>
+    <button class="btn btn-outline-primary" @onclick="() => LoadAsync(refresh: true)" disabled="@busy">Refresh from source</button>
+    <button class="btn btn-outline-primary" @onclick="ScanAsync" disabled="@busy">Scan library now</button>
+</div>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert alert-info">@message</div>
+}
+
+@if (entries.Count == 0 && !busy)
+{
+    <p>No releases for this week.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr><th>Want</th><th></th><th>Series</th><th>#</th><th>Store date</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var entry in entries)
+            {
+                <tr>
+                    <td>
+                        <input type="checkbox"
+                               checked="@entry.IsWanted"
+                               disabled="@(entry.BookId is not null)"
+                               @onchange="e => ToggleAsync(entry, (bool)e.Value!)" />
+                    </td>
+                    <td>
+                        @if (entry.ThumbnailUri is not null)
+                        {
+                            <img src="@entry.ThumbnailUri" alt="" height="60" />
+                        }
+                    </td>
+                    <td>@entry.Series</td>
+                    <td>@entry.Number</td>
+                    <td>@entry.StoreDate?.ToString("ddd MMM d")</td>
+                    <td>
+                        @if (entry.BookId is not null)
+                        {
+                            <a href="/bookdetail/@(entry.BookId.Value)">In library</a>
+                        }
+                        else if (entry.IsWanted)
+                        {
+                            <span>Waiting for file</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    List<PullListEntry> entries = [];
+    DateOnly week = ThisMonday();
+    bool busy;
+    string? message;
+
+    protected override Task OnInitializedAsync() => LoadAsync(refresh: false);
+
+    Task ChangeWeekAsync(int days)
+    {
+        week = week.AddDays(days);
+        return LoadAsync(refresh: false);
+    }
+
+    async Task LoadAsync(bool refresh)
+    {
+        await RunAsync(async () =>
+        {
+            entries = (await releases.GetReleasesAsync(week, refresh)).ToList();
+            message = null;
+        });
+    }
+
+    async Task ToggleAsync(PullListEntry entry, bool wanted)
+    {
+        await RunAsync(async () =>
+        {
+            await releases.SetWantedAsync(entry.Id.Value, wanted);
+            entry.IsWanted = wanted;
+        });
+    }
+
+    async Task ScanAsync()
+    {
+        await RunAsync(async () =>
+        {
+            var result = await releases.ScanLibraryAsync();
+            message = $"Added {result.Added.Count} book(s), {result.Failed.Count} failed, {result.Remaining} left for the next scan.";
+            entries = (await releases.GetReleasesAsync(week)).ToList();
+        });
+    }
+
+    async Task RunAsync(Func<Task> action)
+    {
+        busy = true;
+        try
+        {
+            await action();
+        }
+        catch (HttpRequestException ex)
+        {
+            message = $"Request failed: {ex.Message}";
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    static DateOnly ThisMonday()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        return today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+    }
+}

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:ShortBoxMobile"
+             x:Class="ShortBoxMobile.ReleasesPage"
+             x:DataType="local:ReleasesPageViewModel"
+             Title="New Releases">
+    <Grid RowDefinitions="Auto,*">
+        <Grid Grid.Row="0"
+              Padding="10"
+              ColumnDefinitions="Auto,*,Auto,Auto">
+            <Button Grid.Column="0"
+                    Text="&lt;"
+                    Command="{Binding PreviousWeekCommand}" />
+            <Label Grid.Column="1"
+                   Text="{Binding WeekTitle}"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center" />
+            <Button Grid.Column="2"
+                    Text="&gt;"
+                    Command="{Binding NextWeekCommand}" />
+            <Button Grid.Column="3"
+                    Margin="10,0,0,0"
+                    Text="Update library"
+                    Command="{Binding ScanLibraryCommand}" />
+        </Grid>
+
+        <RefreshView Grid.Row="1"
+                     IsRefreshing="{Binding IsRefreshing}"
+                     Command="{Binding RefreshCommand}">
+            <CollectionView ItemsSource="{Binding Releases}"
+                            SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <Label Text="{Binding Message}"
+                           Padding="20"
+                           HorizontalTextAlignment="Center" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="local:ReleaseRow">
+                        <Grid Padding="10"
+                              ColumnDefinitions="Auto,80,*"
+                              ColumnSpacing="10">
+                            <CheckBox Grid.Column="0"
+                                      VerticalOptions="Center"
+                                      IsChecked="{Binding IsWanted}"
+                                      IsEnabled="{Binding CanChange}" />
+                            <Image Grid.Column="1"
+                                   HeightRequest="120"
+                                   Aspect="AspectFit"
+                                   Source="{Binding CoverUri}" />
+                            <VerticalStackLayout Grid.Column="2"
+                                                 VerticalOptions="Center">
+                                <Label Text="{Binding Series}"
+                                       FontAttributes="Bold" />
+                                <Label Text="{Binding Number, StringFormat='#{0}'}" />
+                                <Label Text="{Binding Status}"
+                                       FontSize="12" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+</ContentPage>

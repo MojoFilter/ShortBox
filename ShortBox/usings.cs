@@ -9,3 +9,4 @@ global using System.Reactive.Linq;
 global using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("ShortBox.Test")]
+[assembly: InternalsVisibleTo("ShortBox.Acquisition.Test")]

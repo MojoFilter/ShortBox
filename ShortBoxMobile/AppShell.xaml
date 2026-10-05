@@ -23,6 +23,11 @@
         ContentTemplate="{DataTemplate local:MainPage}"
         Route="MainPage" />
 
+    <ShellContent
+        Title="New Releases"
+        ContentTemplate="{DataTemplate local:ReleasesPage}"
+        Route="ReleasesPage" />
+
     <FlyoutItem Title="Series"
                 FlyoutDisplayOptions="AsMultipleItems"
                 x:Name="seriesContainer">

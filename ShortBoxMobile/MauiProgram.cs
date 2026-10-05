@@ -32,6 +32,8 @@ public static class MauiProgram
                 .AddTransient<BookPageViewModel>()
                 .AddTransient<MainPage>()
                 .AddTransient<MainPageViewModel>()
+                .AddTransient<ReleasesPage>()
+                .AddTransient<ReleasesPageViewModel>()
                 .AddShortBoxClient()
                 .AddShortBoxAzure(cfg =>
                 {

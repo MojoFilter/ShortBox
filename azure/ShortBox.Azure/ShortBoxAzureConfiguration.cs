@@ -9,6 +9,7 @@ public static class ShortBoxAzureConfiguration
     {
         services.Configure(configure);
         services.AddSingleton<IShortBoxReaderClient, ShortBoxAzureClient>()
+                .AddSingleton<IShortBoxReleasesClient, ShortBoxAzureClient>()
                 .AddSingleton<IShortBoxReaderClientFactory, ShortBoxAzureClientFactory>()
                 .AddHttpClient<ShortBoxAzureClient>((p, client) =>
                 {

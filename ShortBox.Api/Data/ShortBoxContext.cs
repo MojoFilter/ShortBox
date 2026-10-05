@@ -32,6 +32,10 @@ public class ShortBoxContext : DbContext {
         modelBuilder.Entity<Book>()
             .Property(b => b.Id)
             .Metadata.SetBeforeSaveBehavior(PropertySaveBehavior.Ignore);
+
+        modelBuilder.Entity<PullListEntry>()
+            .Property(e => e.Id)
+            .ValueGeneratedNever();
     }
 
     private class IntIdConverter<T> : ValueConverter<T, int> where T : IntId 
