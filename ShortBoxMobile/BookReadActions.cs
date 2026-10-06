@@ -28,7 +28,7 @@ internal static class BookReadActions
             Debug.WriteLine(ex);
             await Shell.Current.CurrentPage.DisplayAlert(
                 "Couldn't update the book",
-                read ? "It could not be marked as read." : "It could not be marked as unread.",
+                $"{(read ? "It could not be marked as read." : "It could not be marked as unread.")}\n\n{ex.Message}",
                 "OK");
             return false;
         }
