@@ -1,3 +1,5 @@
+using ShortBox.Services;
+
 namespace ShortBoxFunctions;
 
 public class GetPage(
@@ -14,6 +16,16 @@ public class GetPage(
         _logger.LogInformation("Retrieving page {page} of book #{bookId}", pageNumber, bookId);
         try
         {
+            // Opt-in so clients that predate prepare/status keep their blocking behaviour: they would
+            // otherwise take the empty 202 for a broken image.
+            if (string.Equals(req.Query["wait"], "false", StringComparison.OrdinalIgnoreCase)
+                && await _bookStore.GetPageStatusAsync(new(bookId), cancellationToken).ConfigureAwait(false) is { State: not PageState.Ready } status)
+            {
+                _logger.LogInformation("Book #{bookId} is not ready ({state}). Not waiting for page {page}.", bookId, status.State, pageNumber);
+                req.HttpContext.Response.Headers.RetryAfter = RetryAfterSeconds.ToString();
+                return new ObjectResult(PageStatusResponse.From(status)) { StatusCode = StatusCodes.Status202Accepted };
+            }
+
             var page = await _bookStore.GetBookPageAsync(new(bookId), pageNumber, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Page {page} of book #{bookId} retrieved", pageNumber, bookId);
             return new FileStreamResult(page.Content, page.ContentType);
@@ -29,6 +41,8 @@ public class GetPage(
             return new UnprocessableEntityObjectResult(ex.Message);
         }
     }
+
+    private const int RetryAfterSeconds = 2;
 
     private readonly IBookStore _bookStore = bookStore;
     private readonly ILogger<GetPage> _logger = logger;

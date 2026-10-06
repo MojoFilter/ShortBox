@@ -18,6 +18,14 @@ internal interface IPageBlobs
     /// <summary>Removes anything in the book's folder that the manifest does not list: leftovers of failed or older extractions.</summary>
     Task DeleteUnlistedAsync(BookId bookId, PageManifest manifest, CancellationToken ct);
 
+    /// <summary>The message of the book's last failed extraction, or null when there is none.</summary>
+    Task<string?> ReadFailureAsync(BookId bookId, CancellationToken ct);
+
+    /// <summary>Records that an extraction failed, so a status check can say so instead of leaving a reader waiting forever.</summary>
+    Task WriteFailureAsync(BookId bookId, string message, CancellationToken ct);
+
+    Task ClearFailureAsync(BookId bookId, CancellationToken ct);
+
     Task<PageImage> OpenPageAsync(BookId bookId, ManifestPage page, CancellationToken ct);
 
     /// <summary>Removes the book's folder, manifest first so a reader never sees a ready book with missing pages.</summary>

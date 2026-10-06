@@ -276,6 +276,63 @@ public class PageCacheTests
     }
 
     [TestMethod]
+    public async Task AnUnextractedBookIsPendingAndStatusNeverExtractsIt()
+    {
+        var (cache, blobs, archives) = NewCache(("01.png", PageFixtures.Png(4, 3)));
+
+        var status = await cache.GetStatusAsync(new(110), default);
+
+        Assert.AreEqual(PageState.Pending, status.State);
+        Assert.IsNull(status.PageCount);
+        Assert.AreEqual(0, archives.Calls);
+        Assert.IsFalse(blobs.HasManifest(110));
+    }
+
+    [TestMethod]
+    public async Task PreparingExtractsTheBookAndReportsItsRealPageCount()
+    {
+        var (cache, _, archives) = NewCache(("ComicInfo.xml", "<ComicInfo/>"u8.ToArray()), ("01.png", PageFixtures.Png(4, 3)), ("02.png", PageFixtures.Png(4, 3)));
+
+        Assert.AreEqual(2, await cache.PrepareAsync(new(111), "a.cbz", default));
+
+        var status = await cache.GetStatusAsync(new(111), default);
+        Assert.AreEqual(PageState.Ready, status.State);
+        Assert.AreEqual(2, status.PageCount);
+        Assert.AreEqual(2, await cache.PrepareAsync(new(111), "a.cbz", default));
+        Assert.AreEqual(1, archives.Calls, "preparing a ready book does not touch the archive");
+    }
+
+    [TestMethod]
+    public async Task AFailedExtractionIsReportedAsFailedUntilTheFailureIsCleared()
+    {
+        var (cache, blobs, _) = NewCache(("01.png", PageFixtures.Png(4, 3)));
+        blobs.FailPageWrite = "0000.png";
+
+        await PageFixtures.CatchAsync<IOException>(() => cache.PrepareAsync(new(112), "a.cbz", default));
+
+        var failed = await cache.GetStatusAsync(new(112), default);
+        Assert.AreEqual(PageState.Failed, failed.State);
+        Assert.AreEqual("simulated storage failure", failed.Error);
+
+        await cache.ClearFailureAsync(new(112), default);
+        Assert.AreEqual(PageState.Pending, (await cache.GetStatusAsync(new(112), default)).State);
+    }
+
+    [TestMethod]
+    public async Task ARetryThatSucceedsLeavesNoFailureBehind()
+    {
+        var (cache, blobs, _) = NewCache(("01.png", PageFixtures.Png(4, 3)));
+        blobs.FailPageWrite = "0000.png";
+        await PageFixtures.CatchAsync<IOException>(() => cache.PrepareAsync(new(113), "a.cbz", default));
+
+        blobs.FailPageWrite = null;
+        await cache.PrepareAsync(new(113), "a.cbz", default);
+
+        Assert.AreEqual(PageState.Ready, (await cache.GetStatusAsync(new(113), default)).State);
+        Assert.IsNull(await blobs.ReadFailureAsync(new(113), default));
+    }
+
+    [TestMethod]
     public async Task AnArchiveWithoutPagesIsReportedAndNeverMarkedReady()
     {
         var (cache, blobs, _) = NewCache(("ComicInfo.xml", "<ComicInfo/>"u8.ToArray()));
@@ -378,6 +435,32 @@ internal class FakePageBlobs : IPageBlobs
         return Task.CompletedTask;
     }
 
+    public Task<string?> ReadFailureAsync(BookId bookId, CancellationToken ct)
+    {
+        lock (_gate)
+        {
+            return Task.FromResult(_failures.GetValueOrDefault(bookId.Value));
+        }
+    }
+
+    public Task WriteFailureAsync(BookId bookId, string message, CancellationToken ct)
+    {
+        lock (_gate)
+        {
+            _failures[bookId.Value] = message;
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task ClearFailureAsync(BookId bookId, CancellationToken ct)
+    {
+        lock (_gate)
+        {
+            _failures.Remove(bookId.Value);
+        }
+        return Task.CompletedTask;
+    }
+
     public Task<PageImage> OpenPageAsync(BookId bookId, ManifestPage page, CancellationToken ct)
     {
         lock (_gate)
@@ -404,6 +487,7 @@ internal class FakePageBlobs : IPageBlobs
     private readonly object _gate = new();
     private readonly Dictionary<(int BookId, string Blob), (byte[] Bytes, string ContentType)> _blobs = [];
     private readonly Dictionary<int, PageManifest> _manifests = [];
+    private readonly Dictionary<int, string> _failures = [];
 }
 
 internal static class PageFixtures

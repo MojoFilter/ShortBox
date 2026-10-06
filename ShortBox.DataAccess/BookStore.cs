@@ -15,6 +15,19 @@ public interface IBookStore
     /// <exception cref="KeyNotFoundException">No such book, or no such page in it.</exception>
     /// <exception cref="InvalidDataException">The book's archive has no page images.</exception>
     Task<PageImage> GetBookPageAsync(BookId bookId, int pageNumber, CancellationToken ct);
+    /// <summary>Whether the book's pages are extracted and ready to serve. Never extracts.</summary>
+    /// <exception cref="KeyNotFoundException">No such book.</exception>
+    Task<BookPageStatus> GetPageStatusAsync(BookId bookId, CancellationToken ct);
+    /// <summary>
+    /// Reports where preparation stands and, for a book whose last extraction failed, forgets the failure.
+    /// A <see cref="PageState.Pending"/> result means the caller should queue the extraction.
+    /// </summary>
+    /// <exception cref="KeyNotFoundException">No such book.</exception>
+    Task<BookPageStatus> RequestPrepareAsync(BookId bookId, CancellationToken ct);
+    /// <summary>Extracts the book's pages if they are not ready. This is the slow work behind <see cref="RequestPrepareAsync"/>.</summary>
+    /// <exception cref="KeyNotFoundException">No such book.</exception>
+    /// <exception cref="InvalidDataException">The book's archive has no page images.</exception>
+    Task PrepareBookAsync(BookId bookId, CancellationToken ct);
     Task MarkPageAsync(BookId bookId, int pageNumber, CancellationToken ct);
     /// <exception cref="KeyNotFoundException">No such book.</exception>
     /// <exception cref="InvalidOperationException">Marking read, but the book's page count is unknown.</exception>
@@ -105,8 +118,54 @@ internal class BookStore(
         return await _pageCache.GetPageAsync(bookId, book.FileName, pageNumber, ct).ConfigureAwait(false);
     }
 
+    public async Task<BookPageStatus> GetPageStatusAsync(BookId bookId, CancellationToken ct)
+    {
+        var book = await this.GetBookAsync(bookId, ct).ConfigureAwait(false);
+        var status = await _pageCache.GetStatusAsync(bookId, ct).ConfigureAwait(false);
+        await this.SyncPageCountAsync(book, status, ct).ConfigureAwait(false);
+        return status;
+    }
+
+    public async Task<BookPageStatus> RequestPrepareAsync(BookId bookId, CancellationToken ct)
+    {
+        var book = await this.GetBookAsync(bookId, ct).ConfigureAwait(false);
+        var status = await _pageCache.GetStatusAsync(bookId, ct).ConfigureAwait(false);
+        if (status.State == PageState.Failed)
+        {
+            await _pageCache.ClearFailureAsync(bookId, ct).ConfigureAwait(false);
+            return BookPageStatus.Pending;
+        }
+        await this.SyncPageCountAsync(book, status, ct).ConfigureAwait(false);
+        return status;
+    }
+
+    public async Task PrepareBookAsync(BookId bookId, CancellationToken ct)
+    {
+        var book = await this.GetBookAsync(bookId, ct).ConfigureAwait(false);
+        var pageCount = await _pageCache.PrepareAsync(bookId, book.FileName, ct).ConfigureAwait(false);
+        await this.SyncPageCountAsync(book, BookPageStatus.Ready(pageCount), ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The extracted pages are the truth about how many pages a book has; the stored count came from the archive
+    /// listing at ingest and can be off by one (an archive without <c>ComicInfo.xml</c>). Modified is left alone: this is not reading activity.
+    /// </summary>
+    private async Task SyncPageCountAsync(Book book, BookPageStatus status, CancellationToken ct)
+    {
+        if (status.PageCount is not { } pageCount || book.PageCount == pageCount)
+        {
+            return;
+        }
+
+        using var context = await this.GetContextAsync(ct).ConfigureAwait(false);
+        var tracked = await this.GetBookByIdAsync(book.Id, context, ct).ConfigureAwait(false);
+        _logger.LogInformation("Book {bookId} has {actual} pages, not {recorded}. Correcting.", book.Id, pageCount, tracked.PageCount);
+        tracked.PageCount = pageCount;
+        await context.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
     private async Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, bool unread, CancellationToken ct)
-    { 
+    {
         using var context = await this.GetContextAsync(ct).ConfigureAwait(false);
         var books = await context.Books
             .Where(b => string.Equals(b.Series, seriesName))

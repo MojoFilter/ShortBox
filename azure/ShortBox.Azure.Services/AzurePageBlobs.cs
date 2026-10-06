@@ -52,6 +52,34 @@ internal class AzurePageBlobs(BlobServiceClient blobServiceClient) : IPageBlobs
         }
     }
 
+    public async Task<string?> ReadFailureAsync(BookId bookId, CancellationToken ct)
+    {
+        var container = await this.GetContainerAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var response = await container.GetBlobClient(BlobName(bookId, FailureBlobName)).DownloadContentAsync(ct).ConfigureAwait(false);
+            return response.Value.Content.ToString();
+        }
+        catch (RequestFailedException ex) when (ex.Status == 404)
+        {
+            return null;
+        }
+    }
+
+    public async Task WriteFailureAsync(BookId bookId, string message, CancellationToken ct)
+    {
+        var container = await this.GetContainerAsync(ct).ConfigureAwait(false);
+        await container.GetBlobClient(BlobName(bookId, FailureBlobName))
+                       .UploadAsync(BinaryData.FromString(message), overwrite: true, ct)
+                       .ConfigureAwait(false);
+    }
+
+    public async Task ClearFailureAsync(BookId bookId, CancellationToken ct)
+    {
+        var container = await this.GetContainerAsync(ct).ConfigureAwait(false);
+        await container.DeleteBlobIfExistsAsync(BlobName(bookId, FailureBlobName), cancellationToken: ct).ConfigureAwait(false);
+    }
+
     public async Task<PageImage> OpenPageAsync(BookId bookId, ManifestPage page, CancellationToken ct)
     {
         var container = await this.GetContainerAsync(ct).ConfigureAwait(false);
@@ -89,4 +117,5 @@ internal class AzurePageBlobs(BlobServiceClient blobServiceClient) : IPageBlobs
     private static volatile bool _containerExists;
 
     internal const string ContainerName = "pages";
+    private const string FailureBlobName = "failed.txt";
 }

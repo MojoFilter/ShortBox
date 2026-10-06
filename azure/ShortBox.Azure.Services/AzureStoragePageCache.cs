@@ -47,6 +47,22 @@ internal class AzureStoragePageCache(
         return await extraction.Value.WaitAsync(ct).ConfigureAwait(false);
     }
 
+    public async Task<BookPageStatus> GetStatusAsync(BookId bookId, CancellationToken ct)
+    {
+        if (await _pageBlobs.ReadManifestAsync(bookId, ct).ConfigureAwait(false) is { } manifest)
+        {
+            return BookPageStatus.Ready(manifest.PageCount);
+        }
+        return await _pageBlobs.ReadFailureAsync(bookId, ct).ConfigureAwait(false) is { } error
+            ? BookPageStatus.Failed(error)
+            : BookPageStatus.Pending;
+    }
+
+    public Task ClearFailureAsync(BookId bookId, CancellationToken ct) => _pageBlobs.ClearFailureAsync(bookId, ct);
+
+    public async Task<int> PrepareAsync(BookId bookId, string bookFileName, CancellationToken ct) =>
+        (await this.GetManifestAsync(bookId, bookFileName, ct).ConfigureAwait(false)).PageCount;
+
     private async Task<PageManifest> ExtractAsync(BookId bookId, string bookFileName)
     {
         try
@@ -60,20 +76,49 @@ internal class AzureStoragePageCache(
                 return ready;
             }
 
-            await using var archive = await _archiveStore.GetArchiveAsync(bookFileName, ct).ConfigureAwait(false);
-            var pages = _archiveBusiness.ExtractArchivePagesAsync(bookFileName, archive, ct);
-            var manifest = await PageExtraction.ExtractAsync(pages, (page, token) => _pageBlobs.WritePageAsync(bookId, page, token), ct).ConfigureAwait(false);
-
-            // The manifest goes last: it is what marks the book ready.
-            await _pageBlobs.WriteManifestAsync(bookId, manifest, ct).ConfigureAwait(false);
-            await _pageBlobs.DeleteUnlistedAsync(bookId, manifest, ct).ConfigureAwait(false);
-            _log.LogInformation("Extracted {pageCount} pages of book {bookId}", manifest.PageCount, bookId.Value);
-            return manifest;
+            await _pageBlobs.ClearFailureAsync(bookId, ct).ConfigureAwait(false);
+            try
+            {
+                return await this.ExtractArchiveAsync(bookId, bookFileName, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                await this.RecordFailureAsync(bookId, ex).ConfigureAwait(false);
+                throw;
+            }
         }
         finally
         {
             InFlight.TryRemove(bookId.Value, out _);
         }
+    }
+
+    private async Task RecordFailureAsync(BookId bookId, Exception failure)
+    {
+        _log.LogError(failure, "Extracting book {bookId} failed", bookId.Value);
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await _pageBlobs.WriteFailureAsync(bookId, failure.Message, timeout.Token).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            // The original failure is the one worth surfacing; a missing marker only means status stays pending.
+            _log.LogWarning(ex, "Could not record the failure of book {bookId}", bookId.Value);
+        }
+    }
+
+    private async Task<PageManifest> ExtractArchiveAsync(BookId bookId, string bookFileName, CancellationToken ct)
+    {
+        await using var archive = await _archiveStore.GetArchiveAsync(bookFileName, ct).ConfigureAwait(false);
+        var pages = _archiveBusiness.ExtractArchivePagesAsync(bookFileName, archive, ct);
+        var manifest = await PageExtraction.ExtractAsync(pages, (page, token) => _pageBlobs.WritePageAsync(bookId, page, token), ct).ConfigureAwait(false);
+
+        // The manifest goes last: it is what marks the book ready.
+        await _pageBlobs.WriteManifestAsync(bookId, manifest, ct).ConfigureAwait(false);
+        await _pageBlobs.DeleteUnlistedAsync(bookId, manifest, ct).ConfigureAwait(false);
+        _log.LogInformation("Extracted {pageCount} pages of book {bookId}", manifest.PageCount, bookId.Value);
+        return manifest;
     }
 
     public async Task<Stream> GetCoverAsync(BookId bookId, string bookFileName, CancellationToken ct)
