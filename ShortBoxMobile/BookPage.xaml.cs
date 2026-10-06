@@ -171,6 +171,8 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 	[RelayCommand]
 	private async Task MarkReadAsync()
 	{
+		// A page save landing after mark-read would move CurrentPage back off PageCount.
+		this.CancelPendingMark();
 		if (await BookReadActions.TryMarkReadAsync(this.BookId, true, _clientFactory.CreateClient()))
 		{
 			await Shell.Current.GoToAsync("..");
@@ -216,15 +218,53 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 		this.Title = $"{this.Book?.Series} #{this.Book?.Number} pg. {this.PageNumber}/{this.Book?.PageCount}";
     }
 
+	/// <summary>
+	/// Saves the reading position once page turns settle. Rapid turns cancel the pending save so only the last page is sent.
+	/// A failed save is logged and dropped; <see cref="Book.CurrentPage"/> is left alone so the next turn tries again.
+	/// </summary>
 	private async Task MarkPage()
 	{
-		if (!_loadingBook && this.Book is not null && this.Book.CurrentPage != this.PageNumber)
+		if (_loadingBook || this.Book is null)
 		{
-			var client = _clientFactory.CreateClient();
-			await client.MarkPageAsync(this.BookId, this.PageNumber, default);
-			this.Book.CurrentPage = this.PageNumber;
+			return;
+		}
+
+		var pending = new CancellationTokenSource();
+		this.CancelPendingMark(pending);
+		var token = pending.Token;
+		try
+		{
+			await Task.Delay(MarkPageDelay, token);
+			var book = this.Book;
+			var page = this.PageNumber;
+			if (book is null || book.CurrentPage == page)
+			{
+				return;
+			}
+
+			await _clientFactory.CreateClient().MarkPageAsync(this.BookId, page, token);
+			book.CurrentPage = page;
+		}
+		catch (OperationCanceledException)
+		{
+			// Superseded by a newer page turn, or the book was marked read.
+		}
+		catch (Exception ex)
+		{
+			Debug.WriteLine($"Failed to save page for book {this.BookId}: {ex.Message}");
 		}
 	}
+
+	private void CancelPendingMark(CancellationTokenSource replacement = null)
+	{
+		var previous = Interlocked.Exchange(ref _pendingMark, replacement);
+		previous?.Cancel();
+		previous?.Dispose();
+	}
+
+	private static readonly TimeSpan MarkPageDelay = TimeSpan.FromMilliseconds(750);
+
+	private CancellationTokenSource _pendingMark;
 
     private async void LoadBook()
 	{
@@ -235,7 +275,7 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 			// A book marked read has CurrentPage == PageCount, one past the last page, and reopening it must not rewrite that.
 			_loadingBook = true;
 			this.PageNumber = Math.Clamp(this.Book.CurrentPage, 0, Math.Max((this.Book.PageCount ?? 1) - 1, 0));
-		} catch (Exception ex) { }
+		} catch (Exception ex) { Debug.WriteLine($"Failed to load book {this.BookId}: {ex.Message}"); }
 		finally { _loadingBook = false; }
 	}
 
