@@ -57,29 +57,38 @@ internal class ArchiveBusiness(
     private readonly IArchiveExtractor _rarExtractor = rarExtractor;
 }
 
+// Both extractors hand out entries that are only readable until the enumeration ends: the underlying archive
+// is disposed then. The caller still owns the stream it passed in.
 internal class ZipExtractor : IArchiveExtractor
 {
-    public IAsyncEnumerable<IPageEntry> ExtractPagesAsync(Stream archive, CancellationToken cancellationToken)
-    {
-        var zipArchive = new ZipArchive(archive, ZipArchiveMode.Read);
-        return zipArchive.Entries
-            .Where(e => PageImageExtensions.IsPageImage(e.Name))
-            .OrderBy(e => e.Name)
-            .Select((e, i) => new PageEntry(i, e.Name, e.Open))
-            .ToAsyncEnumerable();
-    }
+    public IAsyncEnumerable<IPageEntry> ExtractPagesAsync(Stream archive, CancellationToken cancellationToken) =>
+        Enumerate(archive, cancellationToken).ToAsyncEnumerable();
 
+    private static IEnumerable<IPageEntry> Enumerate(Stream archive, CancellationToken cancellationToken)
+    {
+        using var zipArchive = new ZipArchive(archive, ZipArchiveMode.Read, leaveOpen: true);
+        var index = 0;
+        foreach (var entry in zipArchive.Entries.InReadingOrder(e => e.FullName))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return new PageEntry(index++, entry.FullName, entry.Open);
+        }
+    }
 }
 
 internal class RarExtractor : IArchiveExtractor
 {
-    public IAsyncEnumerable<IPageEntry> ExtractPagesAsync(Stream archive, CancellationToken cancellationToken)
+    public IAsyncEnumerable<IPageEntry> ExtractPagesAsync(Stream archive, CancellationToken cancellationToken) =>
+        Enumerate(archive, cancellationToken).ToAsyncEnumerable();
+
+    private static IEnumerable<IPageEntry> Enumerate(Stream archive, CancellationToken cancellationToken)
     {
-        var rar = new RarArchive(archive);
-        return rar.Entries
-            .Where(e => PageImageExtensions.IsPageImage(e.Name))
-            .OrderBy(e => e.Name)
-            .Select((e, i) => new PageEntry(i, e.Name, () => e.Open()))
-            .ToAsyncEnumerable();
+        using var rar = new RarArchive(archive);
+        var index = 0;
+        foreach (var entry in rar.Entries.InReadingOrder(e => e.Name))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return new PageEntry(index++, entry.Name, () => entry.Open());
+        }
     }
 }

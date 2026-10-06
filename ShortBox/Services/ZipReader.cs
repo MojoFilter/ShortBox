@@ -10,15 +10,15 @@ internal sealed class ZipReader : IZipReader
         return await this.CopyEntryAsync(infoEntry);
     });
 
-    public Task<int> GetPageCountAsync(string fileName) => WithArchive(fileName, archive => Task.FromResult(archive.Entries.Count() - 1));
+    public Task<int> GetPageCountAsync(string fileName) => WithArchive(fileName, archive =>
+        Task.FromResult(archive.Entries.InReadingOrder(e => e.FullName).Count()));
 
     public Task<Stream?> OpenCoverAsync(string fileName) => OpenPageAsync(fileName, 0);
 
     public Task<Stream?> OpenPageAsync(string fileName, int pageIndex) => WithArchive(fileName, async archive =>
     {
         var entry = archive.Entries
-            .Where(e => PageImageExtensions.IsPageImage(e.Name))
-               .OrderBy(e => e.Name)
+               .InReadingOrder(e => e.FullName)
                .Skip(pageIndex)
                .First();
         return await CopyEntryAsync(entry);

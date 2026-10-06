@@ -12,6 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="ShortBox.Acquisition.Test" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\ShortBox.DataAccess\ShortBox.DataAccess.csproj" />
     <ProjectReference Include="..\..\ShortBox\ShortBox.csproj" />
   </ItemGroup>

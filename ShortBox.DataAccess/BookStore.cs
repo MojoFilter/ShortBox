@@ -12,7 +12,9 @@ public interface IBookStore
     Task<Book> GetBookAsync(BookId bookId, CancellationToken ct);
     Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken ct);
     Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken ct);
-    Task<Stream> GetBookPageAsync(BookId bookId, int pageNumber, CancellationToken ct);
+    /// <exception cref="KeyNotFoundException">No such book, or no such page in it.</exception>
+    /// <exception cref="InvalidDataException">The book's archive has no page images.</exception>
+    Task<PageImage> GetBookPageAsync(BookId bookId, int pageNumber, CancellationToken ct);
     Task MarkPageAsync(BookId bookId, int pageNumber, CancellationToken ct);
     /// <exception cref="KeyNotFoundException">No such book.</exception>
     /// <exception cref="InvalidOperationException">Marking read, but the book's page count is unknown.</exception>
@@ -95,7 +97,7 @@ internal class BookStore(
         await context.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
-    public async Task<Stream> GetBookPageAsync(BookId bookId, int pageNumber, CancellationToken ct)
+    public async Task<PageImage> GetBookPageAsync(BookId bookId, int pageNumber, CancellationToken ct)
     {
         _logger.LogInformation("Fetching book details of book {bookId}", bookId);
         var book = await this.GetBookAsync(bookId, ct).ConfigureAwait(false);

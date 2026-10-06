@@ -25,7 +25,7 @@ internal abstract class ArchiveReader : IArchiveReader
     public Task<int> GetPageCountAsync(string fileName)
     {
         using var archive = this.OpenArchive(fileName);
-        return Task.FromResult(archive.FileEntries.Count() - 1);
+        return Task.FromResult(archive.FileEntries.InReadingOrder(e => e.Name).Count());
     }
 
     public Task<Stream?> OpenCoverAsync(string fileName) => this.OpenPageAsync(fileName, 0);
@@ -35,8 +35,7 @@ internal abstract class ArchiveReader : IArchiveReader
         using var archive = this.OpenArchive(fileName);
         var pageEntry =
             archive.FileEntries
-               .Where(e => PageImageExtensions.IsPageImage(e.Name))
-               .OrderBy(e => e.Name)
+               .InReadingOrder(e => e.Name)
                .Skip(pageNumber)
                .FirstOrDefault();
         return await this.CopyEntryAsync(pageEntry);

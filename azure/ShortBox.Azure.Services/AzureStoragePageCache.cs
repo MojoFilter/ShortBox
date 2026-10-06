@@ -1,14 +1,15 @@
-﻿using Azure;
-using Azure.Storage.Blobs;
+﻿using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Logging;
 using ShortBox.Api.Data;
 using ShortBox.Services;
+using System.Collections.Concurrent;
 
 namespace ShortBox.Azure.Services;
 
 internal class AzureStoragePageCache(
     BlobServiceClient blobServiceClient,
+    IPageBlobs pageBlobs,
     IArchiveStore archiveStore,
     IArchiveBusiness archiveBusiness,
     ICoverStore coverStore,
@@ -16,39 +17,63 @@ internal class AzureStoragePageCache(
     ILogger<AzureStoragePageCache> log)
     : IPageCache
 {
-    public async Task<Stream> GetPageAsync(BookId bookId, string bookFileName, int pageNumber, CancellationToken ct)
+    public async Task<PageImage> GetPageAsync(BookId bookId, string bookFileName, int pageNumber, CancellationToken ct)
     {
-        var folder = $"{bookId.Value}/";        
-        var containerClient = _serviceClient.GetBlobContainerClient(PagesContainerName);
-        await containerClient.CreateIfNotExistsAsync(cancellationToken: ct).ConfigureAwait(false);
-        _log.LogInformation("Checking files in {folder}", folder);
-
-        var folderBlobs = await this.GetBlobsInVirtualFolderAsync(containerClient, folder, ct).ConfigureAwait(false);
-        
-        if (folderBlobs.Count == 0)
+        var manifest = await this.GetManifestAsync(bookId, bookFileName, ct).ConfigureAwait(false);
+        if (pageNumber < 0 || pageNumber >= manifest.PageCount)
         {
-            _log.LogInformation("Archive {bookId} not found. Attempting to extract.", bookId);
-            await this.ExtractArchiveToBlobStorageAsync(containerClient, bookId, bookFileName, ct);
-            folderBlobs = await this.GetBlobsInVirtualFolderAsync(containerClient, folder, ct).ConfigureAwait(false);
-            if (folderBlobs.Count == 0)
+            _log.LogWarning("Page {pageNumber} requested of book {bookId}, which has {pageCount} pages", pageNumber, bookId.Value, manifest.PageCount);
+            throw new KeyNotFoundException($"Book {bookId.Value} has no page {pageNumber} (it has {manifest.PageCount}).");
+        }
+
+        var page = manifest.Pages[pageNumber];
+        _log.LogInformation("Downloading page {pageNumber} of {bookId} from blob {blobName}", pageNumber, bookId.Value, page.Blob);
+        return await _pageBlobs.OpenPageAsync(bookId, page, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>The manifest of a fully extracted book, extracting it first if it is not ready.</summary>
+    private async Task<PageManifest> GetManifestAsync(BookId bookId, string bookFileName, CancellationToken ct)
+    {
+        var manifest = await _pageBlobs.ReadManifestAsync(bookId, ct).ConfigureAwait(false);
+        if (manifest is not null)
+        {
+            return manifest;
+        }
+
+        _log.LogInformation("Book {bookId} is not extracted. Extracting.", bookId.Value);
+        // Requests for the same book share one extraction, which belongs to none of them: a caller that
+        // gives up (cancels) stops waiting but must not abort the work the others are waiting on.
+        var extraction = InFlight.GetOrAdd(bookId.Value, _ => new(() => this.ExtractAsync(bookId, bookFileName)));
+        return await extraction.Value.WaitAsync(ct).ConfigureAwait(false);
+    }
+
+    private async Task<PageManifest> ExtractAsync(BookId bookId, string bookFileName)
+    {
+        try
+        {
+            using var timeout = new CancellationTokenSource(ExtractionTimeout);
+            var ct = timeout.Token;
+
+            // Another request may have finished this book between our manifest check and registering here.
+            if (await _pageBlobs.ReadManifestAsync(bookId, ct).ConfigureAwait(false) is { } ready)
             {
-                _log.LogWarning("Archive {bookId} not found after extraction.", bookId);
-                throw new KeyNotFoundException($"Archive {bookId} not found.");
+                return ready;
             }
-        }
 
-        if (pageNumber < 0 || pageNumber >= folderBlobs.Count)
+            await using var archive = await _archiveStore.GetArchiveAsync(bookFileName, ct).ConfigureAwait(false);
+            var pages = _archiveBusiness.ExtractArchivePagesAsync(bookFileName, archive, ct);
+            var manifest = await PageExtraction.ExtractAsync(pages, (page, token) => _pageBlobs.WritePageAsync(bookId, page, token), ct).ConfigureAwait(false);
+
+            // The manifest goes last: it is what marks the book ready.
+            await _pageBlobs.WriteManifestAsync(bookId, manifest, ct).ConfigureAwait(false);
+            await _pageBlobs.DeleteUnlistedAsync(bookId, manifest, ct).ConfigureAwait(false);
+            _log.LogInformation("Extracted {pageCount} pages of book {bookId}", manifest.PageCount, bookId.Value);
+            return manifest;
+        }
+        finally
         {
-            _log.LogWarning("Archive {bookId} not found after extraction.", bookId);
-            throw new KeyNotFoundException($"Archive {bookId} not found.");
+            InFlight.TryRemove(bookId.Value, out _);
         }
-
-        var blob = folderBlobs[pageNumber];
-        _log.LogInformation("Downloading page {pageNumber} of {bookId} from blob {blobName}", pageNumber, bookId, blob.Name);
-        var blobClient = containerClient.GetBlobClient(blob.Name);
-        var downloadResponse = await blobClient.DownloadAsync(ct).ConfigureAwait(false);
-        _log.LogInformation("Page {pageNumber} of {bookId} downloaded from blob {blobName}: {contentLength} bytes", pageNumber, bookId, blob.Name, downloadResponse.Value.Details.ContentLength);
-        return downloadResponse.Value.Content;
     }
 
     public async Task<Stream> GetCoverAsync(BookId bookId, string bookFileName, CancellationToken ct)
@@ -64,32 +89,6 @@ internal class AzureStoragePageCache(
         }
         _log.LogInformation("Cover for {bookId} not found. Caching cover.", bookId.Value);
         return await this.CacheCoverAsync(bookId, bookFileName, ct).ConfigureAwait(false);
-    }
-
-    private ValueTask<List<BlobItem>> GetBlobsInVirtualFolderAsync(
-        BlobContainerClient client,
-        string folder,
-        CancellationToken cancellationToken) =>
-        client.GetBlobsAsync(prefix: folder, cancellationToken: cancellationToken)
-            .ToListAsync(cancellationToken);
-
-    private async Task ExtractArchiveToBlobStorageAsync(BlobContainerClient containerClient, BookId bookId, string bookFileName, CancellationToken cancellationToken)
-    {
-        var archive = await _archiveStore.GetArchiveAsync(bookFileName, cancellationToken).ConfigureAwait(false);
-        var pages = _archiveBusiness.ExtractArchivePagesAsync(bookFileName, archive, cancellationToken);
-        await foreach (var page in pages)
-        {
-            var blobClient = containerClient.GetBlobClient($"{bookId.Value}/{page.Name}");
-            using var stream = page.Open();
-            try
-            {
-                await blobClient.UploadAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
-            }
-            catch (RequestFailedException ex) when (ex.Status == 409)
-            {
-                _log.LogWarning("Blob {blobName} already exists. Skipping upload.", blobClient.Name);
-            }
-        }
     }
 
     private async Task<Stream> CacheCoverAsync(BookId bookId, string bookFileName, CancellationToken ct)
@@ -151,19 +150,17 @@ internal class AzureStoragePageCache(
 
     private async Task DeletePagesAsync(IEnumerable<BookId> bookIds, CancellationToken cancellationToken)
     {
-        var containerClient = _serviceClient.GetBlobContainerClient(PagesContainerName);
         foreach (var bookId in bookIds)
         {
-            var folder = $"{bookId.Value}/";
-            var folderBlobs = await this.GetBlobsInVirtualFolderAsync(containerClient, folder, cancellationToken).ConfigureAwait(false);
-            foreach (var blob in folderBlobs)
-            {
-                var blobClient = containerClient.GetBlobClient(blob.Name);
-                await blobClient.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, cancellationToken: cancellationToken).ConfigureAwait(false);
-            }
+            await _pageBlobs.DeleteBookAsync(bookId, cancellationToken).ConfigureAwait(false);
         }
     }
 
+    /// <summary>Extractions under way in this host, by book id.</summary>
+    private static readonly ConcurrentDictionary<int, Lazy<Task<PageManifest>>> InFlight = new();
+    private static readonly TimeSpan ExtractionTimeout = TimeSpan.FromMinutes(10);
+
+    private readonly IPageBlobs _pageBlobs = pageBlobs;
     private readonly IArchiveBusiness _archiveBusiness = archiveBusiness;
     private readonly IArchiveStore _archiveStore = archiveStore;
     private readonly ICoverBusiness _coverBusiness = coverBusiness;
@@ -171,6 +168,6 @@ internal class AzureStoragePageCache(
     private readonly BlobServiceClient _serviceClient = blobServiceClient;
     private readonly ILogger<AzureStoragePageCache> _log = log;
 
-    private const string PagesContainerName = "pages";
+    private const string PagesContainerName = AzurePageBlobs.ContainerName;
     private const string CoversContainerName = "covers";
 }
