@@ -25,7 +25,8 @@ public sealed class PageProvider : IPageProvider, IDisposable
                 throw new ObjectDisposedException(nameof(PageProvider));
             }
 
-            if (!_preparations.TryGetValue(bookId, out preparation!))
+            // A failed or cancelled attempt may not have been forgotten yet, but it must never be handed to a retry.
+            if (!_preparations.TryGetValue(bookId, out preparation!) || (preparation.Task.IsCompleted && !preparation.Task.IsCompletedSuccessfully))
             {
                 preparation = new Preparation();
                 _preparations[bookId] = preparation;
