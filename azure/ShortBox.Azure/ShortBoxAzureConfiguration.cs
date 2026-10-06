@@ -26,6 +26,8 @@ public static class ShortBoxAzureConfiguration
     {
         var options = new PageProviderOptions { CacheDirectory = string.Empty };
         configure(options);
-        return services.AddSingleton<IPageProvider>(p => new PageProvider(p.GetRequiredService<IHttpClientFactory>(), options));
+        // The prefetcher holds the window for one book, so each reader gets its own.
+        return services.AddSingleton<IPageProvider>(p => new PageProvider(p.GetRequiredService<IHttpClientFactory>(), options))
+                       .AddTransient(p => new PagePrefetcher(p.GetRequiredService<IPageProvider>(), options.PrefetchAhead, options.PrefetchBehind));
     }
 }
