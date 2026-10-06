@@ -17,7 +17,7 @@ internal sealed class ZipReader : IZipReader
     public Task<Stream?> OpenPageAsync(string fileName, int pageIndex) => WithArchive(fileName, async archive =>
     {
         var entry = archive.Entries
-            .Where(e => PageImageExtensions.Contains(Path.GetExtension(e.Name)))
+            .Where(e => PageImageExtensions.IsPageImage(e.Name))
                .OrderBy(e => e.Name)
                .Skip(pageIndex)
                .First();
@@ -43,10 +43,4 @@ internal sealed class ZipReader : IZipReader
         }
         return default;
     }
-
-    private static readonly HashSet<string> PageImageExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".jpg", ".jpeg", ".png", ".gif", ".webp"
-    };
-
 }

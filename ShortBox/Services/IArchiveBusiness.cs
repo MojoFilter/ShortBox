@@ -57,22 +57,13 @@ internal class ArchiveBusiness(
     private readonly IArchiveExtractor _rarExtractor = rarExtractor;
 }
 
-internal abstract class Extractor
-{ 
-    protected static readonly HashSet<string> PageImageExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".jpg", ".jpeg", ".png", ".gif"
-    };
-
-}
-
-internal class ZipExtractor : Extractor, IArchiveExtractor
+internal class ZipExtractor : IArchiveExtractor
 {
     public IAsyncEnumerable<IPageEntry> ExtractPagesAsync(Stream archive, CancellationToken cancellationToken)
     {
         var zipArchive = new ZipArchive(archive, ZipArchiveMode.Read);
         return zipArchive.Entries
-            .Where(e => PageImageExtensions.Contains(Path.GetExtension(e.Name)))
+            .Where(e => PageImageExtensions.IsPageImage(e.Name))
             .OrderBy(e => e.Name)
             .Select((e, i) => new PageEntry(i, e.Name, e.Open))
             .ToAsyncEnumerable();
@@ -80,13 +71,13 @@ internal class ZipExtractor : Extractor, IArchiveExtractor
 
 }
 
-internal class RarExtractor : Extractor, IArchiveExtractor
+internal class RarExtractor : IArchiveExtractor
 {
     public IAsyncEnumerable<IPageEntry> ExtractPagesAsync(Stream archive, CancellationToken cancellationToken)
     {
         var rar = new RarArchive(archive);
         return rar.Entries
-            .Where(e => PageImageExtensions.Contains(Path.GetExtension(e.Name)))
+            .Where(e => PageImageExtensions.IsPageImage(e.Name))
             .OrderBy(e => e.Name)
             .Select((e, i) => new PageEntry(i, e.Name, () => e.Open()))
             .ToAsyncEnumerable();

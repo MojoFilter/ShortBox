@@ -35,7 +35,7 @@ internal abstract class ArchiveReader : IArchiveReader
         using var archive = this.OpenArchive(fileName);
         var pageEntry =
             archive.FileEntries
-               .Where(e => PageImageExtensions.Contains(Path.GetExtension(e.Name)))
+               .Where(e => PageImageExtensions.IsPageImage(e.Name))
                .OrderBy(e => e.Name)
                .Skip(pageNumber)
                .FirstOrDefault();
@@ -57,12 +57,6 @@ internal abstract class ArchiveReader : IArchiveReader
     protected abstract IArchive OpenArchive(string fileName);
 
     protected abstract Stream? OpenEntry(IArchiveFileEntry? entry);
-
-    private static readonly HashSet<string> PageImageExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".jpg", ".jpeg", ".png", ".gif"
-    };
-
 }
 
 public interface IRarReader : IArchiveReader { }
