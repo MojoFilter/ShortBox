@@ -22,6 +22,7 @@ public partial class BookPage : ContentPage
 	protected override void OnDisappearing()
 	{
 		Controls.RestoreScreen();
+		this.ViewModel?.Suspend();
 	}
 
     private void OnPageTapped(object sender, TappedEventArgs e)
@@ -149,7 +150,7 @@ public partial class BookPage : ContentPage
 
 //[QueryProperty(nameof(PageNumber), "page")]
 [QueryProperty(nameof(BookId), "bookId")]
-public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clientFactory, IPageProvider pages) : ObservableObject
+public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clientFactory, IPageProvider pages, PagePrefetcher prefetcher) : ObservableObject
 {
     [ObservableProperty]
 	private int _pageNumber;
@@ -237,7 +238,9 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 				this.SetTitle();
 				if (_ready && !_loadingBook)
 				{
+					// Show first: the page being turned to may already be prefetching, and the window must see that it is wanted.
 					_ = this.ShowPageAsync();
+					_prefetcher.MoveTo(this.PageNumber);
 				}
 
 				await this.MarkPage();
@@ -337,8 +340,14 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 			return;
 		}
 
-		await this.LoadPageAsync(token);
+		// The visible page asks first, so the window's downloads queue behind it. Only a prepared book gets a window.
+		var load = this.LoadPageAsync(token);
+		_prefetcher.Open(this.BookId, this.PageCount, this.PageNumber);
+		await load;
 	}
+
+	/// <summary>The reader left the screen: stop prefetching. The next page turn starts the window again.</summary>
+	public void Suspend() => _prefetcher.Suspend();
 
 	private static string PreparingText(PrepareProgress progress) => progress.Stage == PrepareStage.Starting
 		? "Preparing book…"
@@ -420,5 +429,6 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 
 	private readonly IShortBoxReaderClientFactory _clientFactory = clientFactory;
 	private readonly IPageProvider _pages = pages;
+	private readonly PagePrefetcher _prefetcher = prefetcher;
 
 }
