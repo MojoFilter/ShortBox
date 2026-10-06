@@ -1,5 +1,6 @@
 using MauiPageFullScreen;
 using ShortBox.Azure;
+using ShortBox.Azure.Zoom;
 using System.Diagnostics;
 
 namespace ShortBoxMobile;
@@ -10,9 +11,26 @@ public partial class BookPage : ContentPage
 	{
 		InitializeComponent();
 		this.BindingContext = vm;
+		vm.PropertyChanged += this.OnViewModelPropertyChanged;
 	}
 
-    public bool IsZoomed => this.comicPageContainer?.Scale > 1.0 == true;
+	/// <summary>
+	/// A new page starts fitted, whatever zoom the last one was left at. Done when the new image arrives rather than when
+	/// the page number changes, because the old page stays on screen until then.
+	/// </summary>
+	private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
+	{
+		if (e.PropertyName == nameof(BookPageViewModel.PageSource))
+		{
+			_ = this.zoomView.Reset(animated: false);
+		}
+	}
+
+	private void OnNavigationRequested(object sender, ZoomNavigationEventArgs e)
+	{
+		var command = e.Direction == ZoomNavigation.Next ? this.ViewModel.NextPageCommand : this.ViewModel.PreviousPageCommand;
+		command.Execute(default);
+	}
 
     protected override void OnAppearing()
     {
@@ -25,9 +43,9 @@ public partial class BookPage : ContentPage
 		this.ViewModel?.Suspend();
 	}
 
-    private void OnPageTapped(object sender, TappedEventArgs e)
+    private void OnPageTapped(object sender, ZoomTappedEventArgs e)
     {
-		var command = GetTapArea(e.GetPosition(this.inputView), this.inputView) switch
+		var command = GetTapArea(e.Position, this.zoomView) switch
 		{
 			TapArea.Left => this.ViewModel.PreviousPageCommand,
 			TapArea.Right => this.ViewModel.NextPageCommand,
@@ -51,56 +69,6 @@ public partial class BookPage : ContentPage
 
 	private BookPageViewModel ViewModel => this.BindingContext as BookPageViewModel;
 
-    private void OnLeftAreaTapped(object sender, TappedEventArgs e)
-    {
-		this.ViewModel.PreviousPageCommand.Execute(default);
-    }
-
-    private void OnRightAreaTapped(object sender, TappedEventArgs e)
-    {
-        this.ViewModel.NextPageCommand.Execute(default);
-    }
-
-    private void PinchGestureRecognizer_PinchUpdated(object sender, PinchGestureUpdatedEventArgs e)
-    {
-		switch (e.Status)
-		{
-			case GestureStatus.Running:
-				// e.Scale is the change since the previous update, so it compounds onto the current scale.
-				var newScale = Math.Clamp(this.comicPageContainer.Scale * e.Scale, MinScale, MaxScale);
-				this.comicPageContainer.Scale = newScale;
-				this.ClampTranslation();
-				Debug.WriteLine("Scale: {0}", newScale);
-				break;
-			case GestureStatus.Completed or GestureStatus.Canceled:
-				// Swapping the input panels mid-gesture would drop the pinch, so only announce the change once it ends.
-				this.OnPropertyChanged(nameof(IsZoomed));
-				break;
-		}
-    }
-
-	private const double MinScale = 1.0;
-	private const double MaxScale = 3.0;
-
-	/// <summary>Keeps the zoomed page from being dragged past its edges.</summary>
-	private void ClampTranslation()
-	{
-		var container = this.comicPageContainer;
-		var maxX = Math.Max(0, container.Width * (container.Scale - 1) / 2);
-		var maxY = Math.Max(0, container.Height * (container.Scale - 1) / 2);
-		container.TranslationX = Math.Clamp(container.TranslationX, -maxX, maxX);
-		container.TranslationY = Math.Clamp(container.TranslationY, -maxY, maxY);
-	}
-
-	private async Task ToggleZoom()
-	{
-		var newScale = this.IsZoomed ? 1.0 : 2.0;
-		await Task.WhenAll(
-		this.comicPageContainer.ScaleTo(newScale, easing: Easing.CubicInOut),
-			this.comicPageContainer.TranslateTo(0, 0, easing: Easing.SinInOut));
-		this.OnPropertyChanged(nameof(IsZoomed));
-	}
-
 	private const double SideAreaPercent = 1.0 / 6.0;
 
 	private TapArea GetTapArea(Point? point, View container) => point switch
@@ -116,36 +84,6 @@ public partial class BookPage : ContentPage
 		Right,
 		Main,
 	}
-
-    private async void OnPageDoubleTapped(object sender, TappedEventArgs e)
-    {
-		await this.ToggleZoom();
-    }
-
-
-    private void OnPanUpdated(object sender, PanUpdatedEventArgs e)
-    {
-		if (this.IsZoomed) {
-			switch (e.StatusType) {
-				case GestureStatus.Started:
-					_panStart = new(this.comicPageContainer.TranslationX, this.comicPageContainer.TranslationY);
-					break;
-				case GestureStatus.Running:
-					if (_panStart is Point start)
-					{
-						this.comicPageContainer.TranslationX = start.X + e.TotalX;
-						this.comicPageContainer.TranslationY = start.Y + e.TotalY;
-						this.ClampTranslation();
-					}
-					break;
-				default:
-					_panStart = default;
-					break;
-			}
-		}
-    }
-
-	private Point? _panStart;
 }
 
 //[QueryProperty(nameof(PageNumber), "page")]
@@ -167,6 +105,10 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 	/// <summary>The page being shown. Stays on the previous page while the next one loads, and is null until the first arrives.</summary>
 	[ObservableProperty]
 	private ImageSource _pageSource;
+
+	/// <summary>Width over height of <see cref="PageSource"/>, or null if it could not be read. Set just before the source, so the zoom bounds never describe the previous page.</summary>
+	[ObservableProperty]
+	private double? _pageAspectRatio;
 
 	[ObservableProperty]
 	private bool _isLoading;
@@ -363,7 +305,9 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 		try
 		{
 			var path = await _pages.GetPageFileAsync(this.BookId, page, token);
+			var aspectRatio = await Task.Run(() => ReadAspectRatio(path));
 			token.ThrowIfCancellationRequested();
+			this.PageAspectRatio = aspectRatio;
 			this.PageSource = ImageSource.FromStream(() => File.OpenRead(path));
 		}
 		catch (OperationCanceledException) when (token.IsCancellationRequested) { return; }
@@ -390,6 +334,20 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 				this.LoadingText = "Loading page…";
 				this.IsLoading = true;
 			}
+		}
+	}
+
+	/// <summary>Reads the page's shape from its header so the zoom bounds follow the image, not the letterbox. Null if unreadable.</summary>
+	private static double? ReadAspectRatio(string path)
+	{
+		try
+		{
+			using var stream = File.OpenRead(path);
+			return ImageDimensions.TryReadAspectRatio(stream);
+		}
+		catch (IOException)
+		{
+			return null;
 		}
 	}
 

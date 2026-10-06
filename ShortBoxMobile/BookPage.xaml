@@ -13,9 +13,6 @@
         <ToolbarItem Text="Next" Command="{Binding NextPageCommand}" />
         <ToolbarItem Text="Mark read" Command="{Binding MarkReadCommand}" />
     </ContentPage.ToolbarItems>
-    <ContentPage.Resources>
-        <toolkit:InvertedBoolConverter x:Key="invertConvert" />
-    </ContentPage.Resources>
     <Shell.TitleView>
         <HorizontalStackLayout VerticalOptions="Fill">
             <Label Text="{Binding Title}"
@@ -25,32 +22,14 @@
     </Shell.TitleView>
     <RefreshView>
         <Grid x:Name="inputView">
-            <ContentView x:Name="comicPageContainer">
+            <local:ZoomPanView x:Name="zoomView"
+                               ContentAspectRatio="{Binding PageAspectRatio}"
+                               Tapped="OnPageTapped"
+                               NavigationRequested="OnNavigationRequested">
                 <Image x:Name="pageImage"
                        Source="{Binding PageSource}"
                        Aspect="AspectFit" />
-            </ContentView>
-            <ContentView x:Name="standardInputPanel" 
-                     Opacity=".3"
-                     IsVisible="{Binding IsZoomed, Source={x:Reference page}, Converter={StaticResource invertConvert}}">
-                <ContentView.GestureRecognizers>
-                    <PinchGestureRecognizer PinchUpdated="PinchGestureRecognizer_PinchUpdated" />
-                    <TapGestureRecognizer Tapped="OnPageTapped" />
-                    <TapGestureRecognizer Tapped="OnPageDoubleTapped" NumberOfTapsRequired="2" />
-                    <SwipeGestureRecognizer Direction="Left" Command="{Binding NextPageCommand}" />
-                    <SwipeGestureRecognizer Direction="Right" Command="{Binding PreviousPageCommand}" />
-                </ContentView.GestureRecognizers>
-            </ContentView>
-            <ContentView x:Name="zoomedInputPanel"
-                     Opacity=".3"
-                     IsVisible="{Binding IsZoomed, Source={x:Reference page}}">
-                <ContentView.GestureRecognizers>
-                    <PinchGestureRecognizer PinchUpdated="PinchGestureRecognizer_PinchUpdated" />
-                    <TapGestureRecognizer Tapped="OnPageTapped" />
-                    <TapGestureRecognizer Tapped="OnPageDoubleTapped" NumberOfTapsRequired="2" />
-                    <PanGestureRecognizer PanUpdated="OnPanUpdated" />
-                </ContentView.GestureRecognizers>
-            </ContentView>
+            </local:ZoomPanView>
             <local:LoadStateView IsLoading="{Binding IsLoading}"
                                  LoadingText="{Binding LoadingText}"
                                  ErrorText="{Binding ErrorText}"
