@@ -71,6 +71,15 @@ public class ShortBoxAzureClient(IHttpClientFactory clientFactory) : IShortBoxRe
     public Task MarkPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken) =>
         this.WithClient(client => client.PutAsync($"api/book/{bookId}/mark/{pageNumber}", default, cancellationToken));
 
+    public Task MarkReadAsync(int bookId, bool read, CancellationToken cancellationToken) =>
+        this.WithClient(async client =>
+        {
+            using var response = await client.PutAsync(
+                $"api/book/{bookId}/read/{read.ToString().ToLowerInvariant()}", default, cancellationToken).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            return true;
+        });
+
     private async Task<T> WithClient<T>(Func<HttpClient, Task<T>> query)
     {
         using var client = _clientFactory.CreateClient(nameof(ShortBoxAzureClient));

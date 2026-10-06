@@ -11,6 +11,7 @@
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Prev" Command="{Binding PreviousPageCommand}" />
         <ToolbarItem Text="Next" Command="{Binding NextPageCommand}" />
+        <ToolbarItem Text="Mark read" Command="{Binding MarkReadCommand}" />
     </ContentPage.ToolbarItems>
     <ContentPage.Resources>
         <local:BookPageUriConverter x:Key="uriConverter" />

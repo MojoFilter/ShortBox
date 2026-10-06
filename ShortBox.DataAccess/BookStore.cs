@@ -14,6 +14,9 @@ public interface IBookStore
     Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken ct);
     Task<Stream> GetBookPageAsync(BookId bookId, int pageNumber, CancellationToken ct);
     Task MarkPageAsync(BookId bookId, int pageNumber, CancellationToken ct);
+    /// <exception cref="KeyNotFoundException">No such book.</exception>
+    /// <exception cref="InvalidOperationException">Marking read, but the book's page count is unknown.</exception>
+    Task MarkReadAsync(BookId bookId, bool read, CancellationToken ct);
     Task CleanUpReadBooksAsync(CancellationToken cancellationToken);
 }
 
@@ -79,6 +82,17 @@ internal class BookStore(
                      .ExecuteUpdateAsync(s =>
                         s.SetProperty(b => b.CurrentPage, pageNumber)
                          .SetProperty(b => b.Modified, DateTime.Now));
+    }
+
+    public async Task MarkReadAsync(BookId bookId, bool read, CancellationToken ct)
+    {
+        using var context = await this.GetContextAsync(ct).ConfigureAwait(false);
+        var book = await this.GetBookByIdAsync(bookId, context, ct).ConfigureAwait(false);
+        book.CurrentPage = read
+            ? book.PageCount ?? throw new InvalidOperationException($"Book {bookId} has no page count, so it cannot be marked read.")
+            : 0;
+        book.Modified = DateTime.Now;
+        await context.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task<Stream> GetBookPageAsync(BookId bookId, int pageNumber, CancellationToken ct)

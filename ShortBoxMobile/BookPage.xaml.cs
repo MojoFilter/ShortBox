@@ -145,6 +145,15 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 	[RelayCommand]
 	private Task PreviousPage() => this.ChangePageAsync(-1);
 
+	[RelayCommand]
+	private async Task MarkReadAsync()
+	{
+		if (await BookReadActions.TryMarkReadAsync(this.BookId, true, _clientFactory.CreateClient()))
+		{
+			await Shell.Current.GoToAsync("..");
+		}
+	}
+
 	private async Task ChangePageAsync(int delta) 
 	{ 
 		var newPage = this.PageNumber + delta;
@@ -186,7 +195,7 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 
 	private async Task MarkPage()
 	{
-		if (this.Book is not null && this.Book.CurrentPage != this.PageNumber)
+		if (!_loadingBook && this.Book is not null && this.Book.CurrentPage != this.PageNumber)
 		{
 			var client = _clientFactory.CreateClient();
 			await client.MarkPageAsync(this.BookId, this.PageNumber, default);
@@ -200,9 +209,14 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 		{
 			var client = _clientFactory.CreateClient();
 			this.Book = await client.GetBookAsync(this.BookId);
-			this.PageNumber = this.Book.CurrentPage;
+			// A book marked read has CurrentPage == PageCount, one past the last page, and reopening it must not rewrite that.
+			_loadingBook = true;
+			this.PageNumber = Math.Clamp(this.Book.CurrentPage, 0, Math.Max((this.Book.PageCount ?? 1) - 1, 0));
 		} catch (Exception ex) { }
+		finally { _loadingBook = false; }
 	}
+
+	private bool _loadingBook;
 
 	private readonly IShortBoxReaderClientFactory _clientFactory = clientFactory;
 

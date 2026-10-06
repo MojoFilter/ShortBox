@@ -40,6 +40,15 @@ public sealed partial class MainPageViewModel : ObservableObject
     private Task OpenBook(Book book) => Shell.Current.GoToAsync($"{nameof(BookPage)}?bookId={book.Id.Value}");
 
     [RelayCommand]
+    private async Task ToggleReadAsync(Book book)
+    {
+        if (await BookReadActions.PromptToggleReadAsync(book, _clientFactory.CreateClient()))
+        {
+            await this.RefreshBooksAsync();
+        }
+    }
+
+    [RelayCommand]
     public async Task RefreshBooksAsync()
     {
         try

@@ -10,6 +10,7 @@ public interface IShortBoxReaderClient
     Task<Stream> GetBookCoverAsync(int bookId, int? height, CancellationToken cancellationToken);
     Task<Stream> GetBookPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken);
     Task MarkPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken);
+    Task MarkReadAsync(int bookId, bool read, CancellationToken cancellationToken);
 }
 
 public interface IShortBoxApiClient : IShortBoxReaderClient, IDisposable
@@ -75,6 +76,9 @@ internal sealed class ShortBoxApiClient : IShortBoxApiClient
 
     public Task MarkPageAsync(int bookId, int pageNumber, CancellationToken cancellationToken) =>
         _httpClient.PutAsync($"book/{bookId}/mark/{pageNumber}", default, cancellationToken);
+
+    public Task MarkReadAsync(int bookId, bool read, CancellationToken cancellationToken) =>
+        throw new NotSupportedException("The folder API does not support marking books read or unread.");
 
     private async Task<IEnumerable<T>> GetSomeAsync<T>(string uri, CancellationToken cancellationToken)
     {

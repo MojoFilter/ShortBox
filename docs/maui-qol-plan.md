@@ -36,7 +36,7 @@ Findings below come from a read-only code scan (2026-10-06). Verify on a device 
     - Unescaped series name in REST paths (`ShortBoxAzureClient.cs:60,63`); empty-name series (`BookStore.cs:93`).
     - `GetSomeAsync` swallowing exceptions (`HttpClientExtensions.cs`), so failures look like empty series.
   - Fix duplicate series after flyout Refresh (`AppShell.xaml.cs:19-34` never clears `seriesContainer.Items`).
-- [ ] **2. Mark as read / unread**
+- [x] **2. Mark as read / unread** (merged into `azure`; Functions to be published)
   - New Function endpoint plus a method on `IShortBoxReaderClient` and `ShortBoxAzureClient`, and `IBookStore`.
   - Unread rule is `CurrentPage/PageCount < 0.91` (`EfExtensions.cs`), and a null `PageCount` is always unread.
     Mark-read sets `CurrentPage = PageCount` and must handle a null `PageCount`.
@@ -134,3 +134,5 @@ treated as complete until the nightly decache.
 | 2026-10-06 | Pending csproj/manifest changes committed first (`9d0fbf1`) so each chunk starts clean. |
 | 2026-10-06 | Chunk 1 root cause for series books not opening: `SeriesPageViewModel.OpenBook` put `book.Id` in the query string, which is a record and serialises as `BookId { Value = n }`. Now uses `book.Id.Value` like `MainPage`. |
 | 2026-10-06 | Chunk 1 verified on device and merged into `azure`. |
+| 2026-10-06 | Chunk 2 implemented, then squash merged into `azure` at the user's request; the new `MarkRead` Function is published separately. Long-press on Android still to be confirmed on device. `PUT api/book/{id}/read/{true\|false}` (Admin auth, like `MarkPage`) -> `IBookStore.MarkReadAsync`. Read sets `CurrentPage = PageCount`; unread sets `0`; both bump `Modified`. Null `PageCount` on mark-read returns `409` instead of guessing. `Book.IsRead` (JSON-ignored) now owns the 91% threshold; `EfExtensions` uses `Book.ReadThreshold`. |
+| 2026-10-06 | Chunk 2 UI: MAUI has no long-press gesture and Toolkit 7.0.1 has no `TouchBehavior`, so `LongPressBehavior` hooks the native view (Android `LongClick`, Windows `RightTapped`). Long-press a grid item for an action sheet (read/unread). Reader gets a "Mark read" toolbar item that marks read and leaves the book. Reader now clamps the opening page to `PageCount - 1` and skips the page-mark on load, so reopening a read book does not rewrite its state. The legacy folder API (`ShortBox.Api`) has no endpoint, and `ShortBoxApiClient` throws `NotSupportedException`. |

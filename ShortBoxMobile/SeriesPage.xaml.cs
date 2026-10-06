@@ -46,6 +46,15 @@ public sealed partial class SeriesPageViewModel(IShortBoxReaderClientFactory cli
     };
 
     [RelayCommand]
+    private async Task ToggleReadAsync(Book book)
+    {
+        if (await BookReadActions.PromptToggleReadAsync(book, _clientFactory.CreateClient()))
+        {
+            await this.RefreshBooksAsync();
+        }
+    }
+
+    [RelayCommand]
     private async Task RefreshBooksAsync()
     {
         try

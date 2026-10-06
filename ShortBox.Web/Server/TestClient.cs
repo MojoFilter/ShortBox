@@ -60,4 +60,9 @@ public class TestClient : IShortBoxApiClient
     {
         throw new NotImplementedException();
     }
+
+    public Task MarkReadAsync(int bookId, bool read, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
 }

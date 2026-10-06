@@ -1,4 +1,6 @@
-﻿namespace ShortBox.Api.Data;
+﻿using System.Text.Json.Serialization;
+
+namespace ShortBox.Api.Data;
 
 public record Series(string Name);
 
@@ -33,4 +35,10 @@ public class Book {
     public string? Number { get; set; }
     public int? PageCount { get; set; }
     public int CurrentPage { get; set; }
+
+    /// <summary>Fraction of pages at which a book counts as read.</summary>
+    public const double ReadThreshold = 0.91; // 91%
+
+    [JsonIgnore]
+    public bool IsRead => PageCount is > 0 && CurrentPage / (double)PageCount >= ReadThreshold;
 }

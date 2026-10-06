@@ -19,6 +19,10 @@
                             <TapGestureRecognizer Command="{Binding Source={x:Reference booksView}, Path=BindingContext.OpenBookCommand}"
                                                   CommandParameter="{Binding}" />
                         </Grid.GestureRecognizers>
+                        <Grid.Behaviors>
+                            <local:LongPressBehavior Command="{Binding Source={x:Reference booksView}, Path=BindingContext.ToggleReadCommand}"
+                                                     CommandParameter="{Binding}" />
+                        </Grid.Behaviors>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="250" />
                             <RowDefinition Height="35" />
