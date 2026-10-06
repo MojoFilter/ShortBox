@@ -26,6 +26,15 @@ public sealed class PageProviderOptions
     /// <summary>How often a page request that finds its book gone (202) may re-prepare it before giving up.</summary>
     public int MaxRePrepares { get; set; } = 2;
 
+    /// <summary>Prefetch downloads that may run at once. None start while a page the reader is waiting on is downloading.</summary>
+    public int MaxPrefetchDownloads { get; set; } = 2;
+
+    /// <summary>Pages to prefetch beyond the current one, in the direction of travel.</summary>
+    public int PrefetchAhead { get; set; } = 3;
+
+    /// <summary>Pages to prefetch behind the current one, against the direction of travel.</summary>
+    public int PrefetchBehind { get; set; } = 1;
+
     /// <summary>Replaces <see cref="Task.Delay(TimeSpan, CancellationToken)"/>. Exists so tests need not wait.</summary>
     public Func<TimeSpan, CancellationToken, Task> Delay { get; set; } = Task.Delay;
 }

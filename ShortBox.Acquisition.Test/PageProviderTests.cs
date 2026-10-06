@@ -12,9 +12,13 @@ internal sealed class ScriptedHandler : HttpMessageHandler, IHttpClientFactory
 
     public int CallsTo(string method, string path) => this.Calls.Count(c => c.StartsWith($"{method} {path}"));
 
-    public ScriptedHandler On(string method, string path, params Func<Task<HttpResponseMessage>>[] steps)
+    public ScriptedHandler On(string method, string path, params Func<Task<HttpResponseMessage>>[] steps) =>
+        this.On(method, path, [.. steps.Select(step => (Func<CancellationToken, Task<HttpResponseMessage>>)(_ => step()))]);
+
+    /// <summary>Steps that receive the request's cancellation token, for tests that watch a download being abandoned.</summary>
+    public ScriptedHandler On(string method, string path, params Func<CancellationToken, Task<HttpResponseMessage>>[] steps)
     {
-        _routes[$"{method} {path}"] = new Queue<Func<Task<HttpResponseMessage>>>(steps);
+        _routes[$"{method} {path}"] = new Queue<Func<CancellationToken, Task<HttpResponseMessage>>>(steps);
         return this;
     }
 
@@ -47,7 +51,7 @@ internal sealed class ScriptedHandler : HttpMessageHandler, IHttpClientFactory
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var path = request.RequestUri!.AbsolutePath;
-        Func<Task<HttpResponseMessage>> step;
+        Func<CancellationToken, Task<HttpResponseMessage>> step;
         lock (_routes)
         {
             this.Calls.Add($"{request.Method} {request.RequestUri.PathAndQuery}");
@@ -59,10 +63,10 @@ internal sealed class ScriptedHandler : HttpMessageHandler, IHttpClientFactory
             step = queue.Count > 1 ? queue.Dequeue() : queue.Peek();
         }
 
-        return await step().ConfigureAwait(false);
+        return await step(cancellationToken).ConfigureAwait(false);
     }
 
-    private readonly Dictionary<string, Queue<Func<Task<HttpResponseMessage>>>> _routes = [];
+    private readonly Dictionary<string, Queue<Func<CancellationToken, Task<HttpResponseMessage>>>> _routes = [];
 }
 
 [TestClass]

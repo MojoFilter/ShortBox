@@ -26,6 +26,14 @@ public interface IPageProvider
     /// <exception cref="PageLoadException"/>
     Task<string> GetPageFileAsync(int bookId, int pageIndex, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Like <see cref="GetPageFileAsync"/>, for a page the reader may want soon. Callers asking for one page share a single
+    /// download, which stops when the last of them cancels. A prefetch yields to visible pages (it waits while one is
+    /// downloading, and joins its download if the reader asks for the same page), and never makes the server extract a book again.
+    /// </summary>
+    /// <exception cref="PageLoadException"/>
+    Task<string> PrefetchPageAsync(int bookId, int pageIndex, CancellationToken cancellationToken = default);
+
     /// <summary>Stops preparing a book and forgets that it was ready.</summary>
     void Release(int bookId);
 }
