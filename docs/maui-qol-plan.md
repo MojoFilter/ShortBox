@@ -42,7 +42,7 @@ Findings below come from a read-only code scan (2026-10-06). Verify on a device 
     Mark-read sets `CurrentPage = PageCount` and must handle a null `PageCount`.
   - UI: long-press or context action on grid items (main page and series page) and a button in the reader.
     Include mark unread.
-- [ ] **3. Zoom crash hotfix**
+- [x] **3. Zoom crash hotfix** (verified on device)
   - `Math.Clamp(1.0, Scale * e.Scale, 3.0)` has its arguments in the wrong order (`BookPage.xaml.cs:64`) and throws
     once scale passes 3x.
   - Also: respect `GestureStatus`, stop assigning `ScaleOrigin` to translation, clamp panning, raise `IsZoomed` after pinch.
@@ -136,3 +136,4 @@ treated as complete until the nightly decache.
 | 2026-10-06 | Chunk 1 verified on device and merged into `azure`. |
 | 2026-10-06 | Chunk 2 implemented, then squash merged into `azure` at the user's request; the new `MarkRead` Function is published separately. Long-press on Android still to be confirmed on device. `PUT api/book/{id}/read/{true\|false}` (Admin auth, like `MarkPage`) -> `IBookStore.MarkReadAsync`. Read sets `CurrentPage = PageCount`; unread sets `0`; both bump `Modified`. Null `PageCount` on mark-read returns `409` instead of guessing. `Book.IsRead` (JSON-ignored) now owns the 91% threshold; `EfExtensions` uses `Book.ReadThreshold`. |
 | 2026-10-06 | Chunk 2 UI: MAUI has no long-press gesture and Toolkit 7.0.1 has no `TouchBehavior`, so `LongPressBehavior` hooks the native view (Android `LongClick`, Windows `RightTapped`). Long-press a grid item for an action sheet (read/unread). Reader gets a "Mark read" toolbar item that marks read and leaves the book. Reader now clamps the opening page to `PageCount - 1` and skips the page-mark on load, so reopening a read book does not rewrite its state. The legacy folder API (`ShortBox.Api`) has no endpoint, and `ShortBoxApiClient` throws `NotSupportedException`. |
+| 2026-10-06 | Chunk 3 implemented on `feature/zoom-hotfix`. Pinch clamps with the right argument order, only acts on `GestureStatus.Running`, and raises `IsZoomed` on completed/canceled (swapping input panels mid-pinch would drop the gesture). `ScaleOrigin` no longer drives translation; `ClampTranslation` bounds pan to `Width*(Scale-1)/2`. Pan now maps 1:1 to the finger (it was multiplied by `Scale`, so the page outran the finger). Pinch is not focal-point aware; that is chunk 10. |

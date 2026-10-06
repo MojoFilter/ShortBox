@@ -61,12 +61,34 @@ public partial class BookPage : ContentPage
 
     private void PinchGestureRecognizer_PinchUpdated(object sender, PinchGestureUpdatedEventArgs e)
     {
-		var newScale = Math.Clamp(1.0, this.comicPageContainer.Scale * e.Scale, 3.0);
-		this.comicPageContainer.Scale = newScale;
-		this.comicPageContainer.TranslationX = e.ScaleOrigin.X;
-		this.comicPageContainer.TranslationY = e.ScaleOrigin.Y;
-		Debug.WriteLine("Scale: {0}", newScale);
+		switch (e.Status)
+		{
+			case GestureStatus.Running:
+				// e.Scale is the change since the previous update, so it compounds onto the current scale.
+				var newScale = Math.Clamp(this.comicPageContainer.Scale * e.Scale, MinScale, MaxScale);
+				this.comicPageContainer.Scale = newScale;
+				this.ClampTranslation();
+				Debug.WriteLine("Scale: {0}", newScale);
+				break;
+			case GestureStatus.Completed or GestureStatus.Canceled:
+				// Swapping the input panels mid-gesture would drop the pinch, so only announce the change once it ends.
+				this.OnPropertyChanged(nameof(IsZoomed));
+				break;
+		}
     }
+
+	private const double MinScale = 1.0;
+	private const double MaxScale = 3.0;
+
+	/// <summary>Keeps the zoomed page from being dragged past its edges.</summary>
+	private void ClampTranslation()
+	{
+		var container = this.comicPageContainer;
+		var maxX = Math.Max(0, container.Width * (container.Scale - 1) / 2);
+		var maxY = Math.Max(0, container.Height * (container.Scale - 1) / 2);
+		container.TranslationX = Math.Clamp(container.TranslationX, -maxX, maxX);
+		container.TranslationY = Math.Clamp(container.TranslationY, -maxY, maxY);
+	}
 
 	private async Task ToggleZoom()
 	{
@@ -109,8 +131,9 @@ public partial class BookPage : ContentPage
 				case GestureStatus.Running:
 					if (_panStart is Point start)
 					{
-						this.comicPageContainer.TranslationX = start.X + (e.TotalX * this.comicPageContainer.Scale);
-						this.comicPageContainer.TranslationY = start.Y + (e.TotalY * this.comicPageContainer.Scale);
+						this.comicPageContainer.TranslationX = start.X + e.TotalX;
+						this.comicPageContainer.TranslationY = start.Y + e.TotalY;
+						this.ClampTranslation();
 					}
 					break;
 				default:
