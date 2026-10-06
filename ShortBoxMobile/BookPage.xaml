@@ -20,21 +20,19 @@
                    VerticalTextAlignment="Center"/>
         </HorizontalStackLayout>
     </Shell.TitleView>
-    <RefreshView>
-        <Grid x:Name="inputView">
-            <local:ZoomPanView x:Name="zoomView"
-                               ContentAspectRatio="{Binding PageAspectRatio}"
-                               Tapped="OnPageTapped"
-                               NavigationRequested="OnNavigationRequested">
-                <Image x:Name="pageImage"
-                       Source="{Binding PageSource}"
-                       Aspect="AspectFit" />
-            </local:ZoomPanView>
-            <local:LoadStateView IsLoading="{Binding IsLoading}"
-                                 LoadingText="{Binding LoadingText}"
-                                 ErrorText="{Binding ErrorText}"
-                                 CanRetry="{Binding CanRetry}"
-                                 RetryCommand="{Binding RetryCommand}" />
-        </Grid>
-    </RefreshView>
+    <Grid x:Name="inputView">
+        <local:ZoomPanView x:Name="zoomView"
+                           ContentAspectRatio="{Binding PageAspectRatio}"
+                           Tapped="OnPageTapped"
+                           NavigationRequested="OnNavigationRequested">
+            <Image x:Name="pageImage"
+                   Source="{Binding PageSource}"
+                   Aspect="AspectFit" />
+        </local:ZoomPanView>
+        <local:LoadStateView IsLoading="{Binding IsLoading}"
+                             LoadingText="{Binding LoadingText}"
+                             ErrorText="{Binding ErrorText}"
+                             CanRetry="{Binding CanRetry}"
+                             RetryCommand="{Binding RetryCommand}" />
+    </Grid>
 </ContentPage>
