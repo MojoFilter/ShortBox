@@ -219,7 +219,7 @@ public sealed class PageProvider : IPageProvider, IDisposable
     {
         try
         {
-            return await response.Content.ReadFromJsonAsync<StatusBody>(token).ConfigureAwait(false);
+            return await response.Content.ReadFromJsonAsync(PageJsonContext.Default.StatusBody, token).ConfigureAwait(false);
         }
         catch (System.Text.Json.JsonException)
         {
@@ -246,7 +246,6 @@ public sealed class PageProvider : IPageProvider, IDisposable
     private static readonly TimeSpan MinPoll = TimeSpan.FromSeconds(1);
     private static readonly TimeSpan MaxPoll = TimeSpan.FromSeconds(10);
 
-    private sealed record StatusBody(string? Status, int? PageCount, string? Error);
 
     private sealed record StatusReply(HttpStatusCode Code, string? Status, int? PageCount, string? Error, TimeSpan? RetryAfter);
 
