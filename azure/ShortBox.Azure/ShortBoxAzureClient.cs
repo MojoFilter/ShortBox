@@ -87,7 +87,10 @@ public class ShortBoxAzureClient(IHttpClientFactory clientFactory) : IShortBoxRe
 
     private async Task<T> WithClient<T>(Func<HttpClient, Task<T>> query)
     {
-        using var client = _clientFactory.CreateClient(nameof(ShortBoxAzureClient));
+        // Deliberately not disposed: HttpClient.Dispose cancels its pending requests, which would abort the body of a
+        // returned stream before the caller reads it. Clients from the factory share a pooled handler, so there is
+        // nothing to release.
+        var client = _clientFactory.CreateClient(nameof(ShortBoxAzureClient));
         client.Timeout = Timeout.InfiniteTimeSpan;
         return await query(client).ConfigureAwait(false);
     }
