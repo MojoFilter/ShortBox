@@ -12,6 +12,9 @@ public interface IPageCache
     /// <summary>Whether the book's pages are ready to serve. Never extracts.</summary>
     Task<BookPageStatus> GetStatusAsync(BookId bookId, CancellationToken ct);
 
+    /// <summary>The book's pages in reading order, once it is ready. Like <see cref="GetStatusAsync"/>, never extracts.</summary>
+    Task<BookPages> GetPagesAsync(BookId bookId, CancellationToken ct);
+
     /// <summary>Forgets a failed extraction so the book reads as <see cref="PageState.Pending"/> until it is tried again.</summary>
     Task ClearFailureAsync(BookId bookId, CancellationToken ct);
 

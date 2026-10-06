@@ -47,15 +47,18 @@ internal class AzureStoragePageCache(
         return await extraction.Value.WaitAsync(ct).ConfigureAwait(false);
     }
 
-    public async Task<BookPageStatus> GetStatusAsync(BookId bookId, CancellationToken ct)
+    public async Task<BookPageStatus> GetStatusAsync(BookId bookId, CancellationToken ct) =>
+        (await this.GetPagesAsync(bookId, ct).ConfigureAwait(false)).Status;
+
+    public async Task<BookPages> GetPagesAsync(BookId bookId, CancellationToken ct)
     {
         if (await _pageBlobs.ReadManifestAsync(bookId, ct).ConfigureAwait(false) is { } manifest)
         {
-            return BookPageStatus.Ready(manifest.PageCount);
+            return BookPages.From(manifest);
         }
-        return await _pageBlobs.ReadFailureAsync(bookId, ct).ConfigureAwait(false) is { } error
+        return BookPages.NotReady(await _pageBlobs.ReadFailureAsync(bookId, ct).ConfigureAwait(false) is { } error
             ? BookPageStatus.Failed(error)
-            : BookPageStatus.Pending;
+            : BookPageStatus.Pending);
     }
 
     public Task ClearFailureAsync(BookId bookId, CancellationToken ct) => _pageBlobs.ClearFailureAsync(bookId, ct);

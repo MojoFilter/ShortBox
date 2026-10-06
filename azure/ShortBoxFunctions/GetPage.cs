@@ -22,8 +22,7 @@ public class GetPage(
                 && await _bookStore.GetPageStatusAsync(new(bookId), cancellationToken).ConfigureAwait(false) is { State: not PageState.Ready } status)
             {
                 _logger.LogInformation("Book #{bookId} is not ready ({state}). Not waiting for page {page}.", bookId, status.State, pageNumber);
-                req.HttpContext.Response.Headers.RetryAfter = RetryAfterSeconds.ToString();
-                return new ObjectResult(PageStatusResponse.From(status)) { StatusCode = StatusCodes.Status202Accepted };
+                return PageStatusResponse.NotReady(req, status);
             }
 
             var page = await _bookStore.GetBookPageAsync(new(bookId), pageNumber, cancellationToken).ConfigureAwait(false);
@@ -41,8 +40,6 @@ public class GetPage(
             return new UnprocessableEntityObjectResult(ex.Message);
         }
     }
-
-    private const int RetryAfterSeconds = 2;
 
     private readonly IBookStore _bookStore = bookStore;
     private readonly ILogger<GetPage> _logger = logger;

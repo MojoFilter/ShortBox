@@ -19,6 +19,12 @@ public interface IBookStore
     /// <exception cref="KeyNotFoundException">No such book.</exception>
     Task<BookPageStatus> GetPageStatusAsync(BookId bookId, CancellationToken ct);
     /// <summary>
+    /// The pages of the book in reading order, with their content types and dimensions. Empty until the book is ready,
+    /// and never extracts: call prepare first.
+    /// </summary>
+    /// <exception cref="KeyNotFoundException">No such book.</exception>
+    Task<BookPages> GetPagesAsync(BookId bookId, CancellationToken ct);
+    /// <summary>
     /// Reports where preparation stands and, for a book whose last extraction failed, forgets the failure.
     /// A <see cref="PageState.Pending"/> result means the caller should queue the extraction.
     /// </summary>
@@ -124,6 +130,14 @@ internal class BookStore(
         var status = await _pageCache.GetStatusAsync(bookId, ct).ConfigureAwait(false);
         await this.SyncPageCountAsync(book, status, ct).ConfigureAwait(false);
         return status;
+    }
+
+    public async Task<BookPages> GetPagesAsync(BookId bookId, CancellationToken ct)
+    {
+        var book = await this.GetBookAsync(bookId, ct).ConfigureAwait(false);
+        var pages = await _pageCache.GetPagesAsync(bookId, ct).ConfigureAwait(false);
+        await this.SyncPageCountAsync(book, pages.Status, ct).ConfigureAwait(false);
+        return pages;
     }
 
     public async Task<BookPageStatus> RequestPrepareAsync(BookId bookId, CancellationToken ct)

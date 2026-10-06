@@ -289,6 +289,67 @@ public class PageCacheTests
     }
 
     [TestMethod]
+    public async Task ReadyPagesAreListedInReadingOrderWithTheirDimensions()
+    {
+        var (cache, _, _) = NewCache(
+            ("Chapter 2/01.jpg", [9, 9]),
+            ("Chapter 1/02.png", PageFixtures.Png(30, 20)),
+            ("Chapter 1/01.png", PageFixtures.Png(10, 20)));
+        await cache.PrepareAsync(new(114), "a.cbz", default);
+
+        var pages = await cache.GetPagesAsync(new(114), default);
+
+        Assert.AreEqual(PageState.Ready, pages.Status.State);
+        Assert.AreEqual(3, pages.Status.PageCount);
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                new PageInfo(0, "image/png", 10, 20),
+                new PageInfo(1, "image/png", 30, 20),
+                new PageInfo(2, "image/jpeg", null, null),
+            },
+            pages.Pages.ToArray());
+        Assert.AreEqual(0.5, pages.Pages[0].AspectRatio);
+        Assert.AreEqual(1.5, pages.Pages[1].AspectRatio);
+        Assert.IsNull(pages.Pages[2].AspectRatio, "an unreadable image has no known shape");
+    }
+
+    [TestMethod]
+    public async Task ThePageListNeverExtractsAndIsEmptyUntilTheBookIsReady()
+    {
+        var (cache, blobs, archives) = NewCache(("01.png", PageFixtures.Png(4, 3)));
+
+        var pages = await cache.GetPagesAsync(new(115), default);
+
+        Assert.AreEqual(PageState.Pending, pages.Status.State);
+        Assert.AreEqual(0, pages.Pages.Count);
+        Assert.AreEqual(0, archives.Calls);
+        Assert.IsFalse(blobs.HasManifest(115));
+    }
+
+    [TestMethod]
+    public async Task AFailedBookHasNoPageListAndSaysWhy()
+    {
+        var (cache, blobs, _) = NewCache(("01.png", PageFixtures.Png(4, 3)));
+        blobs.FailPageWrite = "0000.png";
+        await PageFixtures.CatchAsync<IOException>(() => cache.PrepareAsync(new(116), "a.cbz", default));
+
+        var pages = await cache.GetPagesAsync(new(116), default);
+
+        Assert.AreEqual(PageState.Failed, pages.Status.State);
+        Assert.AreEqual("simulated storage failure", pages.Status.Error);
+        Assert.AreEqual(0, pages.Pages.Count);
+    }
+
+    [TestMethod]
+    public void AnEmptyOrZeroSizedImageHasNoAspectRatio()
+    {
+        Assert.IsNull(new PageInfo(0, "image/png", 0, 10).AspectRatio);
+        Assert.IsNull(new PageInfo(0, "image/png", 10, 0).AspectRatio);
+        Assert.IsNull(new PageInfo(0, "image/png", 10, null).AspectRatio);
+    }
+
+    [TestMethod]
     public async Task PreparingExtractsTheBookAndReportsItsRealPageCount()
     {
         var (cache, _, archives) = NewCache(("ComicInfo.xml", "<ComicInfo/>"u8.ToArray()), ("01.png", PageFixtures.Png(4, 3)), ("02.png", PageFixtures.Png(4, 3)));
