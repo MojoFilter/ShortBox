@@ -20,4 +20,12 @@ public static class ShortBoxAzureConfiguration
                 });
         return services;
     }
+
+    /// <summary>Adds the reader's page provider. Needs <see cref="AddShortBoxAzure"/> for the HTTP client it uses.</summary>
+    public static IServiceCollection AddShortBoxPageProvider(this IServiceCollection services, Action<PageProviderOptions> configure)
+    {
+        var options = new PageProviderOptions { CacheDirectory = string.Empty };
+        configure(options);
+        return services.AddSingleton<IPageProvider>(p => new PageProvider(p.GetRequiredService<IHttpClientFactory>(), options));
+    }
 }

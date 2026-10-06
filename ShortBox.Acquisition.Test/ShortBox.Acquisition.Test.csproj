@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\azure\ShortBox.Azure\ShortBox.Azure.csproj" />
     <ProjectReference Include="..\azure\ShortBox.Azure.Services\ShortBox.Azure.Services.csproj" />
     <ProjectReference Include="..\ShortBox.ComicVine\ShortBox.ComicVine.csproj" />
     <ProjectReference Include="..\ShortBox.DataAccess\ShortBox.DataAccess.csproj" />
