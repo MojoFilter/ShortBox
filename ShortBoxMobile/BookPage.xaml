@@ -14,7 +14,6 @@
         <ToolbarItem Text="Mark read" Command="{Binding MarkReadCommand}" />
     </ContentPage.ToolbarItems>
     <ContentPage.Resources>
-        <local:BookPageUriConverter x:Key="uriConverter" />
         <toolkit:InvertedBoolConverter x:Key="invertConvert" />
     </ContentPage.Resources>
     <Shell.TitleView>
@@ -28,18 +27,8 @@
         <Grid x:Name="inputView">
             <ContentView x:Name="comicPageContainer">
                 <Image x:Name="pageImage"
-                       Aspect="AspectFit">
-                    <Image.Source>
-                        <UriImageSource>
-                            <UriImageSource.Uri>
-                                <MultiBinding Converter="{StaticResource uriConverter}">
-                                    <Binding Path="BookId" />
-                                    <Binding Path="PageNumber" />
-                                </MultiBinding>
-                            </UriImageSource.Uri>
-                        </UriImageSource>
-                    </Image.Source>
-                </Image>
+                       Source="{Binding PageSource}"
+                       Aspect="AspectFit" />
             </ContentView>
             <ContentView x:Name="standardInputPanel" 
                      Opacity=".3"
@@ -62,6 +51,11 @@
                     <PanGestureRecognizer PanUpdated="OnPanUpdated" />
                 </ContentView.GestureRecognizers>
             </ContentView>
+            <local:LoadStateView IsLoading="{Binding IsLoading}"
+                                 LoadingText="{Binding LoadingText}"
+                                 ErrorText="{Binding ErrorText}"
+                                 CanRetry="{Binding CanRetry}"
+                                 RetryCommand="{Binding RetryCommand}" />
         </Grid>
     </RefreshView>
 </ContentPage>

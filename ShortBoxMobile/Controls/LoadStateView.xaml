@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ShortBoxMobile.LoadStateView"
+             IsVisible="False"
+             HorizontalOptions="Center"
+             VerticalOptions="Center">
+    <Border BackgroundColor="#CC000000"
+            Padding="24,18"
+            StrokeThickness="0">
+        <Border.StrokeShape>
+            <RoundRectangle CornerRadius="12" />
+        </Border.StrokeShape>
+        <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
+            <ActivityIndicator x:Name="spinner"
+                               Color="Bisque"
+                               HeightRequest="40"
+                               WidthRequest="40" />
+            <Label x:Name="loadingLabel"
+                   TextColor="Bisque"
+                   HorizontalTextAlignment="Center" />
+            <Label x:Name="errorLabel"
+                   TextColor="Bisque"
+                   HorizontalTextAlignment="Center" />
+            <Button x:Name="retryButton"
+                    Text="Retry"
+                    HorizontalOptions="Center"
+                    Clicked="OnRetryClicked" />
+        </VerticalStackLayout>
+    </Border>
+</ContentView>

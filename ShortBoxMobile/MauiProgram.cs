@@ -39,7 +39,8 @@ public static class MauiProgram
                 {
                     cfg.BaseAddress = MobileSettings.FunctionsBaseAddress;
                     cfg.HostKey = MobileSettings.FunctionsKey;
-                });
+                })
+                .AddShortBoxPageProvider(cfg => cfg.CacheDirectory = FileSystem.CacheDirectory);
 
 #if DEBUG
 		builder.Logging.AddDebug();

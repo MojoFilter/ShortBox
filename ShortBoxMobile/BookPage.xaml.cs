@@ -1,4 +1,5 @@
 using MauiPageFullScreen;
+using ShortBox.Azure;
 using System.Diagnostics;
 
 namespace ShortBoxMobile;
@@ -148,7 +149,7 @@ public partial class BookPage : ContentPage
 
 //[QueryProperty(nameof(PageNumber), "page")]
 [QueryProperty(nameof(BookId), "bookId")]
-public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clientFactory) : ObservableObject
+public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clientFactory, IPageProvider pages) : ObservableObject
 {
     [ObservableProperty]
 	private int _pageNumber;
@@ -161,6 +162,28 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 
 	[ObservableProperty]
 	private string _title;
+
+	/// <summary>The page being shown. Stays on the previous page while the next one loads, and is null until the first arrives.</summary>
+	[ObservableProperty]
+	private ImageSource _pageSource;
+
+	[ObservableProperty]
+	private bool _isLoading;
+
+	[ObservableProperty]
+	private string _loadingText;
+
+	[ObservableProperty]
+	private string _errorText;
+
+	[ObservableProperty]
+	private bool _canRetry;
+
+	/// <summary>The server's page count once the book is prepared, otherwise the stored one. The stored one can be off by one.</summary>
+	private int PageCount => _preparedPageCount ?? this.Book?.PageCount ?? 0;
+
+	[RelayCommand]
+	private Task Retry() => _ready ? this.ShowPageAsync() : this.OpenBookAsync();
 
 	[RelayCommand]
 	private Task NextPage() => this.ChangePageAsync(1);
@@ -181,8 +204,14 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 
 	private async Task ChangePageAsync(int delta) 
 	{ 
+		if (!_ready)
+		{
+			// Until the book is prepared there is no page to turn from, and a turn would be saved as reading progress.
+			return;
+		}
+
 		var newPage = this.PageNumber + delta;
-		var pageLimit = (this.Book?.PageCount ?? 0) - 1;
+		var pageLimit = this.PageCount - 1;
 		switch (newPage)
 		{
             case < 0 or _ when newPage > pageLimit:
@@ -199,13 +228,18 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 		base.OnPropertyChanged(e);
         switch (e.PropertyName) {
 			case nameof(BookId):
-				this.LoadBook();
+				_ = this.OpenBookAsync();
 				break;
 			case nameof(Book):
 				this.SetTitle();
 				break;
 			case nameof(PageNumber):
 				this.SetTitle();
+				if (_ready && !_loadingBook)
+				{
+					_ = this.ShowPageAsync();
+				}
+
 				await this.MarkPage();
 				break;
 			default:
@@ -215,7 +249,7 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 
     private void SetTitle()
     {
-		this.Title = $"{this.Book?.Series} #{this.Book?.Number} pg. {this.PageNumber}/{this.Book?.PageCount}";
+		this.Title = $"{this.Book?.Series} #{this.Book?.Number} pg. {this.PageNumber}/{this.PageCount}";
     }
 
 	/// <summary>
@@ -266,21 +300,125 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 
 	private CancellationTokenSource _pendingMark;
 
-    private async void LoadBook()
+	/// <summary>
+	/// Loads the book, waits for the server to have it extracted (which can take minutes the first time), then shows the
+	/// page to resume at. Also what Retry runs when any of that failed.
+	/// </summary>
+	private async Task OpenBookAsync()
 	{
+		var token = this.BeginLoad();
 		try
 		{
-			var client = _clientFactory.CreateClient();
-			this.Book = await client.GetBookAsync(this.BookId);
+			this.Book ??= await _clientFactory.CreateClient().GetBookAsync(this.BookId, token)
+				?? throw new PageLoadException(PageLoadFailure.NotFound, "That book was not found.");
+
+			this.LoadingText = "Preparing book…";
+			this.IsLoading = true;
+			var progress = new Progress<PrepareProgress>(p => this.LoadingText = PreparingText(p));
+			var info = await _pages.PrepareAsync(this.BookId, progress, token);
+			_preparedPageCount = info.PageCount;
+
 			// A book marked read has CurrentPage == PageCount, one past the last page, and reopening it must not rewrite that.
 			_loadingBook = true;
-			this.PageNumber = Math.Clamp(this.Book.CurrentPage, 0, Math.Max((this.Book.PageCount ?? 1) - 1, 0));
-		} catch (Exception ex) { Debug.WriteLine($"Failed to load book {this.BookId}: {ex.Message}"); }
-		finally { _loadingBook = false; }
+			try
+			{
+				this.PageNumber = Math.Clamp(this.Book.CurrentPage, 0, Math.Max(this.PageCount - 1, 0));
+			}
+			finally { _loadingBook = false; }
+
+			this.SetTitle();
+			_ready = true;
+			this.LoadingText = "Loading page…";
+		}
+		catch (OperationCanceledException) when (token.IsCancellationRequested) { return; }
+		catch (Exception ex)
+		{
+			this.Fail(ex);
+			return;
+		}
+
+		await this.LoadPageAsync(token);
 	}
 
+	private static string PreparingText(PrepareProgress progress) => progress.Stage == PrepareStage.Starting
+		? "Preparing book…"
+		: $"Preparing book… {progress.Elapsed:m\\:ss}\nThe first time a book is opened it takes a little while.";
+
+	private Task ShowPageAsync() => this.LoadPageAsync(this.BeginLoad());
+
+	private async Task LoadPageAsync(CancellationToken token)
+	{
+		var page = this.PageNumber;
+		var finished = false;
+		_ = ShowSpinnerSoonAsync();
+		try
+		{
+			var path = await _pages.GetPageFileAsync(this.BookId, page, token);
+			token.ThrowIfCancellationRequested();
+			this.PageSource = ImageSource.FromStream(() => File.OpenRead(path));
+		}
+		catch (OperationCanceledException) when (token.IsCancellationRequested) { return; }
+		catch (Exception ex)
+		{
+			this.Fail(ex);
+			return;
+		}
+		finally { finished = true; }
+
+		this.IsLoading = false;
+
+		// Cached pages arrive at once, so only a slow one gets a spinner.
+		async Task ShowSpinnerSoonAsync()
+		{
+			try
+			{
+				await Task.Delay(LoadingIndicatorDelay, token);
+			}
+			catch (OperationCanceledException) { return; }
+
+			if (!finished)
+			{
+				this.LoadingText = "Loading page…";
+				this.IsLoading = true;
+			}
+		}
+	}
+
+	private void Fail(Exception ex)
+	{
+		Debug.WriteLine($"Failed to open book {this.BookId}: {ex}");
+		this.IsLoading = false;
+		this.CanRetry = ex is not PageLoadException { CanRetry: false };
+		this.ErrorText = ex switch
+		{
+			PageLoadException { Kind: PageLoadFailure.PreparationFailed } => $"The server could not prepare this book.\n{ex.Message}",
+			PageLoadException { Kind: PageLoadFailure.Timeout } => "This is taking too long. Try again in a moment.",
+			PageLoadException { Kind: PageLoadFailure.Network } => "Couldn't reach the server.",
+			PageLoadException => ex.Message,
+			_ => "Something went wrong opening this book.",
+		};
+	}
+
+	/// <summary>
+	/// Starts a new load, cancelling whatever was in flight, and clears the previous error. The token sources are
+	/// not disposed: they hold no timers or registrations, so letting them go is free and avoids racing a load that is still unwinding.
+	/// </summary>
+	private CancellationToken BeginLoad()
+	{
+		var next = new CancellationTokenSource();
+		Interlocked.Exchange(ref _currentLoad, next)?.Cancel();
+		this.ErrorText = null;
+		return next.Token;
+	}
+
+	private static readonly TimeSpan LoadingIndicatorDelay = TimeSpan.FromMilliseconds(300);
+
+	private CancellationTokenSource _currentLoad;
+	private int? _preparedPageCount;
+	private bool _ready;
 	private bool _loadingBook;
 
 	private readonly IShortBoxReaderClientFactory _clientFactory = clientFactory;
+	private readonly IPageProvider _pages = pages;
 
 }
