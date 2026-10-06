@@ -28,7 +28,7 @@ Findings below come from a read-only code scan (2026-10-06). Verify on a device 
 
 ## Phase 1: Quick wins
 
-- [ ] **1. Series covers and pages**
+- [x] **1. Series covers and pages** (verified on device)
   - `SeriesPage.xaml:27` binds `<UriImageSource Uri="{Binding}">` straight to a `Book` with no converter.
     `MainPage.xaml:29` uses `BookCoverUriConverter`. Declare the converter in `SeriesPage.xaml` and use it.
   - Confirm on device that opening a book from a series loads pages. If it still fails, suspects in order:
@@ -132,3 +132,5 @@ treated as complete until the nightly decache.
 | 2026-10-06 | Android primary, Windows nice to have, MacCatalyst out of scope. |
 | 2026-10-06 | Panel detection uses an Azure Custom Vision project (not a Google service). |
 | 2026-10-06 | Pending csproj/manifest changes committed first (`9d0fbf1`) so each chunk starts clean. |
+| 2026-10-06 | Chunk 1 root cause for series books not opening: `SeriesPageViewModel.OpenBook` put `book.Id` in the query string, which is a record and serialises as `BookId { Value = n }`. Now uses `book.Id.Value` like `MainPage`. |
+| 2026-10-06 | Chunk 1 verified on device and merged into `azure`. |

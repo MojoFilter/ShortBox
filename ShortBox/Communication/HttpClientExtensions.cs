@@ -10,9 +10,9 @@ public static class HttpClientExtensions
             var result = await client.GetFromJsonAsync<IEnumerable<T>>(uri, cancellationToken);
             return result ?? getDefault();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            //Debug.WriteLine(ex.Message);
+            System.Diagnostics.Debug.WriteLine($"GET {uri} failed: {ex.Message}");
             return getDefault();
         }
 

@@ -57,10 +57,10 @@ public class ShortBoxAzureClient(IHttpClientFactory clientFactory) : IShortBoxRe
     }
 
     public Task<IEnumerable<Book>> GetIssuesAsync(string seriesName, CancellationToken cancellationToken = default) =>
-        WithClient(client => client.GetSomeAsync<Book>($"api/series/{seriesName}", cancellationToken));
+        WithClient(client => client.GetSomeAsync<Book>($"api/series/{Uri.EscapeDataString(seriesName)}", cancellationToken));
 
     public Task<IEnumerable<Book>> GetSeriesArchiveAsync(string seriesName, CancellationToken cancellationToken = default) =>
-        WithClient(client => client.GetSomeAsync<Book>($"api/series/{seriesName}/archive", cancellationToken));
+        WithClient(client => client.GetSomeAsync<Book>($"api/series/{Uri.EscapeDataString(seriesName)}/archive", cancellationToken));
 
     public Task<Stream> GetBookCoverAsync(int bookId, int? height, CancellationToken cancellationToken) =>
         this.WithClient(client => client.GetStreamAsync($"api/book/{bookId}/cover", cancellationToken));

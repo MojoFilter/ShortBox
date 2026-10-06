@@ -21,7 +21,8 @@ public partial class AppShell : Shell
         var client = _clientFactory.CreateClient();
         var allSeries = await client.GetAllSeriesAsync();
         var seriesStyle = this.Resources["seriesStyle"] as Style;
-        foreach (var series in allSeries)
+        this.seriesContainer.Items.Clear();
+        foreach (var series in allSeries.Where(s => !string.IsNullOrWhiteSpace(s.Name)))
         {
             var item = new ShellContent()
             {
