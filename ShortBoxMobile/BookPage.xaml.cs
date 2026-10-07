@@ -6,7 +6,9 @@ namespace ShortBoxMobile;
 
 public partial class BookPage : ContentPage
 {
-	private bool _resyncing;
+	private static readonly TimeSpan PagerSettleDelay = TimeSpan.FromMilliseconds(600);
+
+	private int _pagerCheck;
 
 	public BookPage(BookPageViewModel vm)
 	{
@@ -16,50 +18,63 @@ public partial class BookPage : ContentPage
 	}
 
 	/// <summary>
-	/// The pager follows the view model: when the pages first arrive the carousel is told where to open, because a position set
-	/// before it had any items is not reliably honoured.
+	/// The pager follows the view model. It is told where to open when the pages first arrive, without animating (a scroll from
+	/// page 0 would pass, and report, every page on the way), and is moved when the view model turns the page.
 	/// </summary>
 	private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName == nameof(BookPageViewModel.Pages))
+		switch (e.PropertyName)
 		{
-			this.Dispatcher.Dispatch(this.SyncPagerToViewModel);
+			case nameof(BookPageViewModel.Pages):
+				this.Dispatcher.Dispatch(() => this.MovePagerToViewModel(animate: false));
+				break;
+			case nameof(BookPageViewModel.PageNumber):
+				this.MovePagerToViewModel(this.ViewModel.AnimatePageTurns);
+				break;
 		}
 	}
 
 	/// <summary>
-	/// A new position from the pager is a swipe (or the echo of a turn the view model asked for). The view model takes it only if
-	/// it is one page from where it is; anything else is the carousel settling at the wrong place, and it is sent back.
+	/// A new position from the pager is a swipe, or a step of a move this page asked for. The view model takes it only if it is
+	/// one page from where it is. Anything else (a scroll passing through pages, a carousel settling at the wrong place before it
+	/// has been told where to open) is ignored rather than fought, and checked once the pager has gone quiet.
 	/// </summary>
 	private void OnPagerPositionChanged(object sender, PositionChangedEventArgs e)
 	{
-		if (_resyncing || this.ViewModel is not { } vm)
+		if (this.ViewModel is not { } vm)
 		{
 			return;
 		}
 
 		if (!vm.TryAcceptPagerPosition(e.CurrentPosition))
 		{
-			this.SyncPagerToViewModel();
+			this.CheckPagerSoon();
 		}
 	}
 
-	private void SyncPagerToViewModel()
+	/// <summary>If the pager is still not on the view model's page after it has stopped moving, put it there without animation.</summary>
+	private void CheckPagerSoon()
+	{
+		var check = ++_pagerCheck;
+		this.Dispatcher.DispatchDelayed(PagerSettleDelay, () =>
+		{
+			if (check == _pagerCheck)
+			{
+				this.MovePagerToViewModel(animate: false);
+			}
+		});
+	}
+
+	private void MovePagerToViewModel(bool animate)
 	{
 		if (this.ViewModel is not { Pages.Count: > 0 } vm || this.pager.Position == vm.PageNumber)
 		{
 			return;
 		}
 
-		_resyncing = true;
-		try
-		{
-			this.pager.Position = vm.PageNumber;
-		}
-		finally
-		{
-			_resyncing = false;
-		}
+		_pagerCheck++;
+		this.pager.IsScrollAnimated = animate;
+		this.pager.ScrollTo(vm.PageNumber, position: ScrollToPosition.Center, animate: animate);
 	}
 
 	private void OnNavigationRequested(object sender, ZoomNavigationEventArgs e)
@@ -216,15 +231,14 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 
 		var newPage = this.PageNumber + delta;
 		var pageLimit = this.PageCount - 1;
-		switch (newPage)
+		if (newPage < 0 || newPage > pageLimit)
 		{
-            case < 0 or _ when newPage > pageLimit:
-				await Shell.Current.GoToAsync("..");
-                break;
-			default:
-				this.PageNumber = newPage;
-				break;
-        };
+			// Past either end of the book: leave the reader.
+			await Shell.Current.GoToAsync("..");
+			return;
+		}
+
+		this.PageNumber = newPage;
 	}
 
     protected override async void OnPropertyChanged(PropertyChangedEventArgs e)

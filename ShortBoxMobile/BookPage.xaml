@@ -24,9 +24,7 @@
     <Grid x:Name="inputView">
         <CarouselView x:Name="pager"
                       ItemsSource="{Binding Pages}"
-                      Position="{Binding PageNumber, Mode=OneWay}"
                       IsVisible="{Binding IsReady}"
-                      IsScrollAnimated="{Binding AnimatePageTurns}"
                       Loop="False"
                       IsBounceEnabled="False"
                       PositionChanged="OnPagerPositionChanged">
