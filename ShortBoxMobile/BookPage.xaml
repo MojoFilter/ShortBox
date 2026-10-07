@@ -6,6 +6,7 @@
              x:Class="ShortBoxMobile.BookPage"
              Shell.TitleColor="AliceBlue"
              Shell.NavBarIsVisible="False"
+             Shell.FlyoutBehavior="Disabled"
              x:Name="page"
              x:DataType="local:BookPageViewModel">
     <ContentPage.ToolbarItems>
@@ -21,14 +22,21 @@
         </HorizontalStackLayout>
     </Shell.TitleView>
     <Grid x:Name="inputView">
-        <local:ZoomPanView x:Name="zoomView"
-                           ContentAspectRatio="{Binding PageAspectRatio}"
-                           Tapped="OnPageTapped"
-                           NavigationRequested="OnNavigationRequested">
-            <Image x:Name="pageImage"
-                   Source="{Binding PageSource}"
-                   Aspect="AspectFit" />
-        </local:ZoomPanView>
+        <CarouselView x:Name="pager"
+                      ItemsSource="{Binding Pages}"
+                      Position="{Binding PageNumber, Mode=OneWay}"
+                      IsVisible="{Binding IsReady}"
+                      IsScrollAnimated="{Binding AnimatePageTurns}"
+                      Loop="False"
+                      IsBounceEnabled="False"
+                      PositionChanged="OnPagerPositionChanged">
+            <CarouselView.ItemTemplate>
+                <DataTemplate x:DataType="local:ReaderPage">
+                    <local:ReaderPageView Tapped="OnPageTapped"
+                                          NavigationRequested="OnNavigationRequested" />
+                </DataTemplate>
+            </CarouselView.ItemTemplate>
+        </CarouselView>
         <local:LoadStateView IsLoading="{Binding IsLoading}"
                              LoadingText="{Binding LoadingText}"
                              ErrorText="{Binding ErrorText}"

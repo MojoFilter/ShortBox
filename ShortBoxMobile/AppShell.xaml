@@ -35,6 +35,9 @@
     </FlyoutItem>
 
     <MenuItem Text="Refresh" Clicked="AppShell_Loaded" />
-    <MenuItem Text="Settings" />
+    <ShellContent
+        Title="Settings"
+        ContentTemplate="{DataTemplate local:SettingsPage}"
+        Route="SettingsPage" />
 
 </Shell>

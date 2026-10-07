@@ -1,12 +1,13 @@
 using MauiPageFullScreen;
 using ShortBox.Azure;
-using ShortBox.Azure.Zoom;
 using System.Diagnostics;
 
 namespace ShortBoxMobile;
 
 public partial class BookPage : ContentPage
 {
+	private bool _resyncing;
+
 	public BookPage(BookPageViewModel vm)
 	{
 		InitializeComponent();
@@ -15,14 +16,49 @@ public partial class BookPage : ContentPage
 	}
 
 	/// <summary>
-	/// A new page starts fitted, whatever zoom the last one was left at. Done when the new image arrives rather than when
-	/// the page number changes, because the old page stays on screen until then.
+	/// The pager follows the view model: when the pages first arrive the carousel is told where to open, because a position set
+	/// before it had any items is not reliably honoured.
 	/// </summary>
 	private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
 	{
-		if (e.PropertyName == nameof(BookPageViewModel.PageSource))
+		if (e.PropertyName == nameof(BookPageViewModel.Pages))
 		{
-			_ = this.zoomView.Reset(animated: false);
+			this.Dispatcher.Dispatch(this.SyncPagerToViewModel);
+		}
+	}
+
+	/// <summary>
+	/// A new position from the pager is a swipe (or the echo of a turn the view model asked for). The view model takes it only if
+	/// it is one page from where it is; anything else is the carousel settling at the wrong place, and it is sent back.
+	/// </summary>
+	private void OnPagerPositionChanged(object sender, PositionChangedEventArgs e)
+	{
+		if (_resyncing || this.ViewModel is not { } vm)
+		{
+			return;
+		}
+
+		if (!vm.TryAcceptPagerPosition(e.CurrentPosition))
+		{
+			this.SyncPagerToViewModel();
+		}
+	}
+
+	private void SyncPagerToViewModel()
+	{
+		if (this.ViewModel is not { Pages.Count: > 0 } vm || this.pager.Position == vm.PageNumber)
+		{
+			return;
+		}
+
+		_resyncing = true;
+		try
+		{
+			this.pager.Position = vm.PageNumber;
+		}
+		finally
+		{
+			_resyncing = false;
 		}
 	}
 
@@ -45,7 +81,7 @@ public partial class BookPage : ContentPage
 
     private void OnPageTapped(object sender, ZoomTappedEventArgs e)
     {
-		var command = GetTapArea(e.Position, this.zoomView) switch
+		var command = GetTapArea(e.Position, (View)sender) switch
 		{
 			TapArea.Left => this.ViewModel.PreviousPageCommand,
 			TapArea.Right => this.ViewModel.NextPageCommand,
@@ -80,7 +116,7 @@ public partial class BookPage : ContentPage
 
 	private enum TapArea
 	{
-		Left, 
+		Left,
 		Right,
 		Main,
 	}
@@ -88,7 +124,7 @@ public partial class BookPage : ContentPage
 
 //[QueryProperty(nameof(PageNumber), "page")]
 [QueryProperty(nameof(BookId), "bookId")]
-public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clientFactory, IPageProvider pages, PagePrefetcher prefetcher) : ObservableObject
+public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clientFactory, IPageProvider provider, PagePrefetcher prefetcher, ReaderSettings settings) : ObservableObject
 {
     [ObservableProperty]
 	private int _pageNumber;
@@ -102,14 +138,15 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 	[ObservableProperty]
 	private string _title;
 
-	/// <summary>The page being shown. Stays on the previous page while the next one loads, and is null until the first arrives.</summary>
+	/// <summary>Every page of the book, once it is prepared; null until then. Each decides for itself whether to hold an image.</summary>
 	[ObservableProperty]
-	private ImageSource _pageSource;
+	private IReadOnlyList<ReaderPage> _pages;
 
-	/// <summary>Width over height of <see cref="PageSource"/>, or null if it could not be read. Set just before the source, so the zoom bounds never describe the previous page.</summary>
+	/// <summary>The book is prepared and the pager has pages to show.</summary>
 	[ObservableProperty]
-	private double? _pageAspectRatio;
+	private bool _isReady;
 
+	/// <summary>Loading and error state of opening the book. Each page has its own.</summary>
 	[ObservableProperty]
 	private bool _isLoading;
 
@@ -122,11 +159,14 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 	[ObservableProperty]
 	private bool _canRetry;
 
+	/// <summary>Whether the pager slides when a tap, button or key turns the page. Read when the reader opens.</summary>
+	public bool AnimatePageTurns => settings.AnimatePageTurns;
+
 	/// <summary>The server's page count once the book is prepared, otherwise the stored one. The stored one can be off by one.</summary>
 	private int PageCount => _preparedPageCount ?? this.Book?.PageCount ?? 0;
 
 	[RelayCommand]
-	private Task Retry() => _ready ? this.ShowPageAsync() : this.OpenBookAsync();
+	private Task Retry() => this.OpenBookAsync();
 
 	[RelayCommand]
 	private Task NextPage() => this.ChangePageAsync(1);
@@ -145,9 +185,30 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 		}
 	}
 
-	private async Task ChangePageAsync(int delta) 
-	{ 
-		if (!_ready)
+	/// <summary>
+	/// The pager scrolled to <paramref name="position"/>. Returns false if that cannot be right, in which case the pager is out
+	/// of step and should be put back. A swipe moves one page, and a carousel that is still settling can report any position
+	/// (it starts at 0 before it has been told where to open), which must never be saved as reading progress.
+	/// </summary>
+	public bool TryAcceptPagerPosition(int position)
+	{
+		if (!this.IsReady || position == this.PageNumber)
+		{
+			return true;
+		}
+
+		if (Math.Abs(position - this.PageNumber) != 1 || position < 0 || position >= this.PageCount)
+		{
+			return false;
+		}
+
+		this.PageNumber = position;
+		return true;
+	}
+
+	private async Task ChangePageAsync(int delta)
+	{
+		if (!this.IsReady)
 		{
 			// Until the book is prepared there is no page to turn from, and a turn would be saved as reading progress.
 			return;
@@ -165,7 +226,7 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 				break;
         };
 	}
-	
+
     protected override async void OnPropertyChanged(PropertyChangedEventArgs e)
     {
 		base.OnPropertyChanged(e);
@@ -178,10 +239,10 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 				break;
 			case nameof(PageNumber):
 				this.SetTitle();
-				if (_ready && !_loadingBook)
+				if (this.IsReady && !_loadingBook)
 				{
-					// Show first: the page being turned to may already be prefetching, and the window must see that it is wanted.
-					_ = this.ShowPageAsync();
+					// Pages first: the one being turned to may already be prefetching, and the window must see that it is wanted.
+					this.UpdatePages();
 					_prefetcher.MoveTo(this.PageNumber);
 				}
 
@@ -196,6 +257,32 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
     {
 		this.Title = $"{this.Book?.Series} #{this.Book?.Number} pg. {this.PageNumber}/{this.PageCount}";
     }
+
+	/// <summary>
+	/// Tells each page how near the reader is: the one on screen loads first, its neighbours load behind it, and pages that fell
+	/// out of reach let go of their images. Only the pages that were or are in reach are visited, however long the book.
+	/// </summary>
+	private void UpdatePages()
+	{
+		if (this.Pages is not { Count: > 0 } pages)
+		{
+			return;
+		}
+
+		var current = Math.Clamp(this.PageNumber, 0, pages.Count - 1);
+		var live = PagerWindow.Live(current, pages.Count);
+		foreach (var index in live)
+		{
+			pages[index].SetRole(PagerWindow.RoleOf(index, current));
+		}
+
+		foreach (var index in _livePages.Except(live).ToArray())
+		{
+			pages[index].SetRole(PageRole.Far);
+		}
+
+		_livePages = [.. live];
+	}
 
 	/// <summary>
 	/// Saves the reading position once page turns settle. Rapid turns cancel the pending save so only the last page is sent.
@@ -246,8 +333,8 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 	private CancellationTokenSource _pendingMark;
 
 	/// <summary>
-	/// Loads the book, waits for the server to have it extracted (which can take minutes the first time), then shows the
-	/// page to resume at. Also what Retry runs when any of that failed.
+	/// Loads the book, waits for the server to have it extracted (which can take minutes the first time), then gives the pager
+	/// its pages, opened at the page to resume at. Also what Retry runs when any of that failed.
 	/// </summary>
 	private async Task OpenBookAsync()
 	{
@@ -260,7 +347,7 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 			this.LoadingText = "Preparing book…";
 			this.IsLoading = true;
 			var progress = new Progress<PrepareProgress>(p => this.LoadingText = PreparingText(p));
-			var info = await _pages.PrepareAsync(this.BookId, progress, token);
+			var info = await _provider.PrepareAsync(this.BookId, progress, token);
 			_preparedPageCount = info.PageCount;
 
 			// A book marked read has CurrentPage == PageCount, one past the last page, and reopening it must not rewrite that.
@@ -272,8 +359,10 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 			finally { _loadingBook = false; }
 
 			this.SetTitle();
-			_ready = true;
-			this.LoadingText = "Loading page…";
+			_livePages = [];
+			this.Pages = [.. Enumerable.Range(0, info.PageCount).Select(i => new ReaderPage(_provider, this.BookId, i))];
+			this.IsReady = true;
+			this.IsLoading = false;
 		}
 		catch (OperationCanceledException) when (token.IsCancellationRequested) { return; }
 		catch (Exception ex)
@@ -283,9 +372,8 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 		}
 
 		// The visible page asks first, so the window's downloads queue behind it. Only a prepared book gets a window.
-		var load = this.LoadPageAsync(token);
+		this.UpdatePages();
 		_prefetcher.Open(this.BookId, this.PageCount, this.PageNumber);
-		await load;
 	}
 
 	/// <summary>The reader left the screen: stop prefetching. The next page turn starts the window again.</summary>
@@ -295,75 +383,12 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 		? "Preparing book…"
 		: $"Preparing book… {progress.Elapsed:m\\:ss}\nThe first time a book is opened it takes a little while.";
 
-	private Task ShowPageAsync() => this.LoadPageAsync(this.BeginLoad());
-
-	private async Task LoadPageAsync(CancellationToken token)
-	{
-		var page = this.PageNumber;
-		var finished = false;
-		_ = ShowSpinnerSoonAsync();
-		try
-		{
-			var path = await _pages.GetPageFileAsync(this.BookId, page, token);
-			var aspectRatio = await Task.Run(() => ReadAspectRatio(path));
-			token.ThrowIfCancellationRequested();
-			this.PageAspectRatio = aspectRatio;
-			this.PageSource = ImageSource.FromStream(() => File.OpenRead(path));
-		}
-		catch (OperationCanceledException) when (token.IsCancellationRequested) { return; }
-		catch (Exception ex)
-		{
-			this.Fail(ex);
-			return;
-		}
-		finally { finished = true; }
-
-		this.IsLoading = false;
-
-		// Cached pages arrive at once, so only a slow one gets a spinner.
-		async Task ShowSpinnerSoonAsync()
-		{
-			try
-			{
-				await Task.Delay(LoadingIndicatorDelay, token);
-			}
-			catch (OperationCanceledException) { return; }
-
-			if (!finished)
-			{
-				this.LoadingText = "Loading page…";
-				this.IsLoading = true;
-			}
-		}
-	}
-
-	/// <summary>Reads the page's shape from its header so the zoom bounds follow the image, not the letterbox. Null if unreadable.</summary>
-	private static double? ReadAspectRatio(string path)
-	{
-		try
-		{
-			using var stream = File.OpenRead(path);
-			return ImageDimensions.TryReadAspectRatio(stream);
-		}
-		catch (IOException)
-		{
-			return null;
-		}
-	}
-
 	private void Fail(Exception ex)
 	{
 		Debug.WriteLine($"Failed to open book {this.BookId}: {ex}");
 		this.IsLoading = false;
-		this.CanRetry = ex is not PageLoadException { CanRetry: false };
-		this.ErrorText = ex switch
-		{
-			PageLoadException { Kind: PageLoadFailure.PreparationFailed } => $"The server could not prepare this book.\n{ex.Message}",
-			PageLoadException { Kind: PageLoadFailure.Timeout } => "This is taking too long. Try again in a moment.",
-			PageLoadException { Kind: PageLoadFailure.Network } => "Couldn't reach the server.",
-			PageLoadException => ex.Message,
-			_ => "Something went wrong opening this book.",
-		};
+		this.ErrorText = LoadErrors.Describe(ex, out var canRetry);
+		this.CanRetry = canRetry;
 	}
 
 	/// <summary>
@@ -378,15 +403,13 @@ public sealed partial class BookPageViewModel(IShortBoxReaderClientFactory clien
 		return next.Token;
 	}
 
-	private static readonly TimeSpan LoadingIndicatorDelay = TimeSpan.FromMilliseconds(300);
-
 	private CancellationTokenSource _currentLoad;
 	private int? _preparedPageCount;
-	private bool _ready;
 	private bool _loadingBook;
+	private HashSet<int> _livePages = [];
 
 	private readonly IShortBoxReaderClientFactory _clientFactory = clientFactory;
-	private readonly IPageProvider _pages = pages;
+	private readonly IPageProvider _provider = provider;
 	private readonly PagePrefetcher _prefetcher = prefetcher;
 
 }

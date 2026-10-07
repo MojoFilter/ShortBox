@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:ShortBoxMobile"
+             x:Class="ShortBoxMobile.SettingsPage"
+             x:DataType="local:ReaderSettings"
+             Title="Settings">
+    <VerticalStackLayout Padding="20" Spacing="16">
+        <Label Text="Reader" FontSize="18" FontAttributes="Bold" />
+        <Grid ColumnDefinitions="*,Auto">
+            <VerticalStackLayout Grid.Column="0" Spacing="2">
+                <Label Text="Animate page turns" FontSize="16" />
+                <Label Text="Slide between pages when you tap, press a button or use a key. Swiping always follows your finger."
+                       FontSize="12"
+                       Opacity="0.7" />
+            </VerticalStackLayout>
+            <Switch Grid.Column="1"
+                    IsToggled="{Binding AnimatePageTurns}"
+                    VerticalOptions="Center" />
+        </Grid>
+    </VerticalStackLayout>
+</ContentPage>

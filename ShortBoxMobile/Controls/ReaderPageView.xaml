@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:ShortBoxMobile"
+             x:Class="ShortBoxMobile.ReaderPageView"
+             x:DataType="local:ReaderPage">
+    <Grid>
+        <local:ZoomPanView x:Name="zoomView"
+                           ContentAspectRatio="{Binding AspectRatio}"
+                           IsKeyboardEnabled="{Binding IsCurrent}"
+                           IsSwipeNavigationEnabled="False"
+                           Tapped="OnZoomTapped"
+                           NavigationRequested="OnZoomNavigationRequested">
+            <Image Source="{Binding Source}"
+                   Aspect="AspectFit" />
+        </local:ZoomPanView>
+        <local:LoadStateView IsLoading="{Binding IsLoading}"
+                             LoadingText="{Binding LoadingText}"
+                             ErrorText="{Binding ErrorText}"
+                             CanRetry="{Binding CanRetry}"
+                             RetryCommand="{Binding RetryCommand}" />
+    </Grid>
+</ContentView>
