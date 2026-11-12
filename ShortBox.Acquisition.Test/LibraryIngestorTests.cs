@@ -24,7 +24,7 @@ public class LibraryIngestorTests
         Assert.AreEqual("4", book.Number);
         Assert.AreEqual(3, book.PageCount);
         CollectionAssert.AreEqual(new[] { "Darkhawk 004 (2026).cbz" }, env.Archives.Covers);
-        Assert.AreEqual(1, env.PullList.LinkedBooks.Count);
+        Assert.AreEqual(1, env.PullList.LinkScans);
     }
 
     [TestMethod]
@@ -83,14 +83,16 @@ public class LibraryIngestorTests
     }
 
     [TestMethod]
-    public async Task NothingToDoLeavesThePullListAlone()
+    public async Task ScansTheLibraryForReleasesEvenWhenNothingWasAdded()
     {
-        var env = new Env();
+        var env = new Env("Darkhawk 004 (2026).cbz");
+        env.PullList.LinkResult = 2;
 
         var result = await env.Ingestor.IngestAsync(default);
 
         Assert.AreEqual(0, result.Added.Count);
-        Assert.AreEqual(0, env.PullList.LinkedBooks.Count);
+        Assert.AreEqual(1, env.PullList.LinkScans);
+        Assert.AreEqual(2, result.Linked);
     }
 
     private class Env

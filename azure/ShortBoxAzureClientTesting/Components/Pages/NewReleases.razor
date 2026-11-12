@@ -102,7 +102,7 @@ else
         await RunAsync(async () =>
         {
             var result = await releases.ScanLibraryAsync();
-            message = $"Added {result.Added.Count} book(s), {result.Failed.Count} failed, {result.Remaining} left for the next scan.";
+            message = $"Added {result.Added.Count} book(s), {result.Failed.Count} failed, matched {result.Linked} release(s), {result.Remaining} left for the next scan.";
             entries = (await releases.GetReleasesAsync(week)).ToList();
         });
     }

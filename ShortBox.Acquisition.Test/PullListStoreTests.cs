@@ -74,25 +74,55 @@ public class PullListStoreTests
     }
 
     [TestMethod]
-    public async Task LinkingMatchesOnlyWantedOutstandingEntries()
+    public async Task LibraryScanLinksEntriesToBooksThatWereAlreadyThere()
     {
-        var store = NewStore();
-        await store.UpsertAsync(
-            [Release(1, "Darkhawk", "4"), Release(2, "Daredevil", "9"), Release(3, "X-Men", "1")], default);
-        await store.SetWantedAsync(1, true, default);
-        await store.SetWantedAsync(2, true, default);
-
-        var linked = await store.LinkBooksAsync(
+        var (store, catalog) = NewStoreAndCatalog();
+        await catalog.AddBooksAsync(
         [
-            new Book { Id = new(100), FileName = "Darkhawk 004 (2026).cbz", Series = "Darkhawk", Number = "004" },
-            new Book { Id = new(101), FileName = "X-Men 001 (2026).cbz", Series = "X-Men", Number = "001" }
+            NewBook("Darkhawk 004 (2026).cbz", "Darkhawk", "004"),
+            NewBook("X-Men 001 (2026).cbz", "X-Men", "001"),
+            NewBook("no-metadata.cbz")
         ], default);
 
-        Assert.AreEqual(1, linked, "X-Men was never wanted, Daredevil has no book yet");
+        // The checklist learns about the issues only after their files are in the library.
+        await store.UpsertAsync(
+            [Release(1, "Darkhawk", "4"), Release(2, "Daredevil", "9"), Release(3, "X-Men", "1")], default);
+        await store.SetWantedAsync(2, true, default);
+
+        var linked = await store.LinkLibraryAsync(default);
+
+        Assert.AreEqual(2, linked, "Daredevil has no book yet");
+        var week = await store.GetWeekAsync(DateOnly.Parse("2026-10-05"), default);
+        Assert.IsNotNull(week.Single(e => e.Series == "Darkhawk").BookId);
+        Assert.IsNotNull(week.Single(e => e.Series == "X-Men").BookId, "linked even though nobody ticked it");
+        Assert.IsNull(week.Single(e => e.Series == "Daredevil").BookId);
         var outstanding = await store.GetOutstandingAsync(default);
         CollectionAssert.AreEqual(new[] { "Daredevil" }, outstanding.Select(e => e.Series).ToArray());
-        var week = await store.GetWeekAsync(DateOnly.Parse("2026-10-05"), default);
-        Assert.AreEqual(100, week.Single(e => e.Series == "Darkhawk").BookId!.Value);
+    }
+
+    [TestMethod]
+    public async Task LibraryScanLinksWhenTheFileArrivesLater()
+    {
+        var (store, catalog) = NewStoreAndCatalog();
+        await store.UpsertAsync([Release(1, "Darkhawk", "4")], default);
+        await store.SetWantedAsync(1, true, default);
+        Assert.AreEqual(0, await store.LinkLibraryAsync(default));
+
+        await catalog.AddBooksAsync([NewBook("Darkhawk 004 (2026).cbz", "Darkhawk", "004")], default);
+
+        Assert.AreEqual(1, await store.LinkLibraryAsync(default));
+        Assert.AreEqual(0, (await store.GetOutstandingAsync(default)).Count);
+        Assert.AreEqual(0, await store.LinkLibraryAsync(default), "already linked entries are left alone");
+    }
+
+    [TestMethod]
+    public async Task LibraryScanDoesNotMixUpIssuesOfTheSameSeries()
+    {
+        var (store, catalog) = NewStoreAndCatalog();
+        await catalog.AddBooksAsync([NewBook("Darkhawk 003.cbz", "Darkhawk (2026)", "3")], default);
+        await store.UpsertAsync([Release(1, "Darkhawk", "4")], default);
+
+        Assert.AreEqual(0, await store.LinkLibraryAsync(default));
     }
 
     [TestMethod]
@@ -119,9 +149,16 @@ public class PullListStoreTests
 
     // The in-memory provider has no identity column, so unlike SQL Server it needs distinct ids up front.
     private static int _nextId;
-    private static Book NewBook(string name) => new() { Id = new(++_nextId), FileName = name };
+    private static Book NewBook(string name, string? series = null, string? number = null) =>
+        new() { Id = new(++_nextId), FileName = name, Series = series, Number = number };
 
     private static PullListStore NewStore() => new(new InMemoryFactory(Guid.NewGuid().ToString()));
+
+    private static (PullListStore Store, BookCatalog Catalog) NewStoreAndCatalog()
+    {
+        var factory = new InMemoryFactory(Guid.NewGuid().ToString());
+        return (new PullListStore(factory), new BookCatalog(factory));
+    }
 
     private static ReleaseInfo Release(int id, string series, string number, string storeDate = "2026-10-07", string? title = null) =>
         new(id, series, number, title ?? $"{series} #{number}", DateOnly.Parse(storeDate));

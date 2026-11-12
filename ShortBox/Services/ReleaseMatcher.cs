@@ -13,6 +13,10 @@ public static partial class ReleaseMatcher
         && series == NormalizeSeries(book.Series)
         && NormalizeNumber(entry.Number) == NormalizeNumber(book.Number);
 
+    /// <summary>A key under which an entry and a book can be compared without comparing every pair.</summary>
+    public static (string Series, string Number) IssueKey(string series, string number) =>
+        (NormalizeSeries(series), NormalizeNumber(number));
+
     public static string NormalizeSeries(string series)
     {
         var withoutYear = TrailingYear().Replace(series, string.Empty);

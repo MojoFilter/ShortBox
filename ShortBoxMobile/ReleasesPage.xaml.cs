@@ -99,7 +99,7 @@ public sealed partial class ReleasesPageViewModel(IShortBoxReleasesClient client
         try
         {
             var result = await _client.ScanLibraryAsync();
-            this.Message = $"Added {result.Added.Count} book(s). {result.Remaining} left for the next scan.";
+            this.Message = $"Added {result.Added.Count} book(s), matched {result.Linked} release(s). {result.Remaining} left for the next scan.";
             await this.LoadAsync();
         }
         catch (HttpRequestException ex)

@@ -16,7 +16,8 @@ internal class FakeReleaseSource(params ReleaseInfo[] releases) : IReleaseSource
 internal class FakePullListStore : IPullListStore
 {
     public List<PullListEntry> Entries { get; } = [];
-    public List<Book> LinkedBooks { get; } = [];
+    public int LinkScans { get; private set; }
+    public int LinkResult { get; set; }
 
     public Task<IReadOnlyList<PullListEntry>> GetWeekAsync(DateOnly weekStart, CancellationToken ct)
     {
@@ -47,10 +48,10 @@ internal class FakePullListStore : IPullListStore
 
     public Task SetWantedAsync(int entryId, bool wanted, CancellationToken ct) => Task.CompletedTask;
 
-    public Task<int> LinkBooksAsync(IEnumerable<Book> books, CancellationToken ct)
+    public Task<int> LinkLibraryAsync(CancellationToken ct)
     {
-        LinkedBooks.AddRange(books);
-        return Task.FromResult(0);
+        LinkScans++;
+        return Task.FromResult(LinkResult);
     }
 }
 

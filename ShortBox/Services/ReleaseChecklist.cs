@@ -12,14 +12,20 @@ internal class ReleaseChecklist(IReleaseSource source, IPullListStore store) : I
     {
         var weekStart = WeekStart(date);
         var entries = await _store.GetWeekAsync(weekStart, ct).ConfigureAwait(false);
-        if (entries.Count > 0 && !refresh)
+        if (entries.Count == 0 || refresh)
         {
-            return entries;
+            var releases = await _source.GetReleasesAsync(weekStart, weekStart.AddDays(6), ct).ConfigureAwait(false);
+            await _store.UpsertAsync(releases, ct).ConfigureAwait(false);
+            entries = await _store.GetWeekAsync(weekStart, ct).ConfigureAwait(false);
         }
 
-        var releases = await _source.GetReleasesAsync(weekStart, weekStart.AddDays(6), ct).ConfigureAwait(false);
-        await _store.UpsertAsync(releases, ct).ConfigureAwait(false);
-        return await _store.GetWeekAsync(weekStart, ct).ConfigureAwait(false);
+        // Release data tends to show up later than the files do, so an entry may be new to the checklist
+        // while its book has been in the library for days.
+        if (entries.Any(e => e.BookId is null) && await _store.LinkLibraryAsync(ct).ConfigureAwait(false) > 0)
+        {
+            entries = await _store.GetWeekAsync(weekStart, ct).ConfigureAwait(false);
+        }
+        return entries;
     }
 
     public static DateOnly WeekStart(DateOnly date) =>

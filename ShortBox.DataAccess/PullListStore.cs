@@ -89,25 +89,44 @@ internal class PullListStore(IDbContextFactory<ShortBoxContext> contextFactory) 
         await context.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
-    public async Task<int> LinkBooksAsync(IEnumerable<Book> books, CancellationToken ct)
+    public async Task<int> LinkLibraryAsync(CancellationToken ct)
     {
-        var newBooks = books.ToList();
         using var context = await _contextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
-        var outstanding = await context.PullList
-            .Where(e => e.IsWanted && e.BookId == null)
+        var unlinked = await context.PullList
+            .Where(e => e.BookId == null)
             .ToListAsync(ct)
             .ConfigureAwait(false);
+        if (unlinked.Count == 0)
+        {
+            return 0;
+        }
+
+        // Index the library once instead of comparing every entry with every book.
+        var books = await context.Books
+            .Where(b => b.Series != null && b.Number != null)
+            .Select(b => new { b.Id, Series = b.Series!, Number = b.Number! })
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        var byIssue = new Dictionary<(string Series, string Number), BookId>();
+        foreach (var book in books.OrderBy(b => b.Id.Value)) // duplicates resolve to the oldest copy
+        {
+            byIssue.TryAdd(ReleaseMatcher.IssueKey(book.Series, book.Number), book.Id);
+        }
 
         var linked = 0;
-        foreach (var entry in outstanding)
+        foreach (var entry in unlinked)
         {
-            if (newBooks.FirstOrDefault(b => ReleaseMatcher.IsMatch(entry, b)) is { } book)
+            if (!string.IsNullOrEmpty(ReleaseMatcher.NormalizeSeries(entry.Series))
+                && byIssue.TryGetValue(IssueKey(entry), out var bookId))
             {
-                entry.BookId = book.Id;
+                entry.BookId = bookId;
                 linked++;
             }
         }
-        await context.SaveChangesAsync(ct).ConfigureAwait(false);
+        if (linked > 0)
+        {
+            await context.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
         return linked;
     }
 

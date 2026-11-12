@@ -2,7 +2,8 @@ using Microsoft.Extensions.Logging;
 
 namespace ShortBox.Services;
 
-public record IngestResult(IReadOnlyList<string> Added, IReadOnlyList<string> Failed, int Remaining);
+/// <param name="Linked">Checklist entries that were matched to a library book during the run (new files and ones that were already there).</param>
+public record IngestResult(IReadOnlyList<string> Added, IReadOnlyList<string> Failed, int Remaining, int Linked = 0);
 
 public interface ILibraryIngestor
 {
@@ -46,15 +47,15 @@ internal class LibraryIngestor(
             }
         }
 
-        if (added.Count > 0)
-        {
-            var linked = await _pullList.LinkBooksAsync(added, ct).ConfigureAwait(false);
-            _log.LogInformation("Ingested {count} books, {linked} matched the pull list", added.Count, linked);
-        }
+        // Always scan the whole library, not just this run's books: the checklist may have gained entries
+        // for issues that were ingested long ago.
+        var linked = await _pullList.LinkLibraryAsync(ct).ConfigureAwait(false);
+        _log.LogInformation("Ingested {count} books, {linked} checklist entries matched the library", added.Count, linked);
         return new(
             added.Select(b => b.FileName).ToArray(),
             failed,
-            Math.Max(0, pending.Count - MaxFilesPerRun));
+            Math.Max(0, pending.Count - MaxFilesPerRun),
+            linked);
     }
 
     private async Task<IReadOnlyList<Book>> IngestFileAsync(ArchiveFile file, CancellationToken ct)

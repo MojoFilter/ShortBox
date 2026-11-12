@@ -13,6 +13,10 @@ public interface IPullListStore
 
     Task SetWantedAsync(int entryId, bool wanted, CancellationToken ct);
 
-    /// <summary>Links outstanding wanted entries to the matching newly added books.</summary>
-    Task<int> LinkBooksAsync(IEnumerable<Book> books, CancellationToken ct);
+    /// <summary>
+    /// Scans the whole library and links every entry that isn't linked yet (wanted or not) to the book it is.
+    /// Covers issues that were already in the library by the time they showed up on the checklist as well as
+    /// files that arrive later. Returns the number of entries linked.
+    /// </summary>
+    Task<int> LinkLibraryAsync(CancellationToken ct);
 }

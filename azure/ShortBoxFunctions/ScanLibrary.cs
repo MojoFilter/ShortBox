@@ -23,8 +23,8 @@ public class ScanLibrary(ILibraryIngestor ingestor, ILogger<ScanLibrary> logger)
     {
         var result = await _ingestor.IngestAsync(cancellationToken).ConfigureAwait(false);
         _logger.LogInformation(
-            "Library scan added {added}, failed {failed}, {remaining} left for the next run",
-            result.Added.Count, result.Failed.Count, result.Remaining);
+            "Library scan added {added}, failed {failed}, matched {linked} releases, {remaining} left for the next run",
+            result.Added.Count, result.Failed.Count, result.Linked, result.Remaining);
         return result;
     }
 

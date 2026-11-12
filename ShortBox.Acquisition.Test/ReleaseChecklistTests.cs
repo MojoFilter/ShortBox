@@ -41,6 +41,36 @@ public class ReleaseChecklistTests
         Assert.AreEqual(2, source.Calls.Count);
     }
 
+    [TestMethod]
+    public async Task ScansTheLibraryWhenAnEntryHasNoBookYet()
+    {
+        var store = new FakePullListStore();
+        var checklist = new ReleaseChecklist(new FakeReleaseSource(Release(1, "2026-10-07")), store);
+
+        await checklist.GetWeekAsync(DateOnly.Parse("2026-10-07"), refresh: false, default);
+
+        Assert.AreEqual(1, store.LinkScans);
+    }
+
+    [TestMethod]
+    public async Task SkipsTheLibraryScanWhenEveryEntryIsInTheLibrary()
+    {
+        var store = new FakePullListStore();
+        store.Entries.Add(new()
+        {
+            Id = new(1),
+            Title = "Darkhawk #1",
+            IssueNumber = 1,
+            StoreDate = DateTime.Parse("2026-10-07"),
+            BookId = new(5)
+        });
+        var checklist = new ReleaseChecklist(new FakeReleaseSource(), store);
+
+        await checklist.GetWeekAsync(DateOnly.Parse("2026-10-07"), refresh: false, default);
+
+        Assert.AreEqual(0, store.LinkScans);
+    }
+
     private static ReleaseInfo Release(int id, string storeDate) =>
         new(id, "Darkhawk", "1", "Darkhawk #1", DateOnly.Parse(storeDate));
 }
